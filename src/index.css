@@ -1,0 +1,187 @@
+/* Google Fonts - Inter */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom Base Styles */
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply font-sans antialiased text-gray-900 bg-white;
+  }
+}
+
+/* Custom Component Styles */
+@layer components {
+  .container-custom {
+    @apply max-w-7xl mx-auto px-4 sm:px-6 lg:px-8;
+  }
+
+  .btn-primary {
+    @apply bg-primary-800 text-white px-6 py-3 rounded-lg font-semibold
+           hover:bg-primary-700 transition-all duration-300
+           transform hover:scale-105 active:scale-95
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  .btn-secondary {
+    @apply bg-white text-primary-800 border-2 border-primary-800 px-6 py-3 rounded-lg font-semibold
+           hover:bg-primary-800 hover:text-white transition-all duration-300
+           focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2;
+  }
+
+  .btn-whatsapp {
+    @apply bg-green-500 text-white px-6 py-3 rounded-lg font-semibold
+           hover:bg-green-600 transition-all duration-300
+           transform hover:scale-105 active:scale-95
+           focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2;
+  }
+
+  .card {
+    @apply bg-white rounded-xl shadow-lg overflow-hidden
+           transform transition-all duration-300
+           hover:shadow-xl hover:-translate-y-1;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold text-gray-900 mb-4;
+  }
+
+  .section-subtitle {
+    @apply text-lg text-gray-600 max-w-2xl mx-auto;
+  }
+
+  .gradient-bg {
+    @apply bg-gradient-to-r from-primary-800 to-primary-600;
+  }
+
+  .text-gradient {
+    @apply bg-gradient-to-r from-primary-800 to-primary-500 bg-clip-text text-transparent;
+  }
+}
+
+/* Custom Utilities */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animation-delay-400 {
+    animation-delay: 400ms;
+  }
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-100;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-primary-400 rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-primary-500;
+}
+
+/* Swiper Custom Styles */
+.swiper-pagination-bullet-active {
+  @apply bg-primary-800;
+}
+
+.swiper-button-next,
+.swiper-button-prev {
+  @apply text-primary-800;
+}
+
+/* Toast Customization */
+.Toastify__toast--success {
+  @apply bg-green-500;
+}
+
+.Toastify__toast--error {
+  @apply bg-red-500;
+}
+
+.Toastify__toast--info {
+  @apply bg-primary-600;
+}
+
+/* Modal Animation */
+.modal-enter {
+  opacity: 0;
+  transform: scale(0.9);
+}
+
+.modal-enter-active {
+  opacity: 1;
+  transform: scale(1);
+  transition: opacity 200ms, transform 200ms;
+}
+
+.modal-exit {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.modal-exit-active {
+  opacity: 0;
+  transform: scale(0.9);
+  transition: opacity 200ms, transform 200ms;
+}
+
+/* Pulse Animation for WhatsApp Button */
+@keyframes pulse-ring {
+  0% {
+    transform: scale(0.8);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1.5);
+    opacity: 0;
+  }
+}
+
+.whatsapp-pulse::before {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: #25D366;
+  animation: pulse-ring 1.5s cubic-bezier(0.215, 0.61, 0.355, 1) infinite;
+}
+
+/* Limited Time Badge Animation */
+@keyframes shine {
+  0% {
+    background-position: -100px;
+  }
+  40%, 100% {
+    background-position: 200px;
+  }
+}
+
+.badge-shine {
+  background: linear-gradient(to right, transparent 0%, rgba(255, 255, 255, 0.4) 50%, transparent 100%);
+  background-size: 200px 100%;
+  animation: shine 2s infinite;
+}
+
+/* Loading Skeleton */
+.skeleton {
+  @apply bg-gray-200 rounded animate-pulse;
+}
