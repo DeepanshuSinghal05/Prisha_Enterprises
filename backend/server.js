@@ -79,9 +79,12 @@ if (process.env.NODE_ENV === 'development') {
   app.use(morgan('combined'));
 }
 
-// Health check endpoint
+// Health check endpoint for UptimeRobot
 app.get('/api/health', (req, res) => {
-  res.json({ status: 'OK', timestamp: new Date().toISOString() });
+  res.status(200).json({
+    status: 'online',
+    timestamp: new Date().toISOString()
+  });
 });
 
 // API Routes
