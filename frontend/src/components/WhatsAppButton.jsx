@@ -2,7 +2,7 @@ import { motion } from 'framer-motion';
 import { FaWhatsapp } from 'react-icons/fa';
 
 const WhatsAppButton = () => {
-  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919999999999';
+  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '919717718175';
   const message = encodeURIComponent('Hello! I am interested in your LED TV products. Please share more details.');
   const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${message}`;
 

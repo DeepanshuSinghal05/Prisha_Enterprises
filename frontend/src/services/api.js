@@ -6,6 +6,9 @@
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
+// Cache the CSRF token in memory for cross-domain requests
+let cachedCsrfToken = null;
+
 /**
  * Generic API request handler
  */
@@ -14,29 +17,34 @@ export const apiRequest = async (endpoint, options = {}, isRetry = false) => {
 
   // If mutating request and no CSRF cookie, fetch it first
   if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-    if (!document.cookie || !document.cookie.includes('XSRF-TOKEN=')) {
-      try {
-        await fetch(`${API_URL}/health`, { credentials: 'include' });
-      } catch (e) {
-        console.warn('Failed to pre-fetch CSRF token', e);
+    if (!cachedCsrfToken && document.cookie) {
+      const cookies = document.cookie.split(';');
+      for (const cookie of cookies) {
+        if (cookie.trim().startsWith('XSRF-TOKEN=')) {
+          cachedCsrfToken = cookie.trim().substring('XSRF-TOKEN='.length);
+          break;
+        }
       }
     }
-  }
-  // Extract XSRF-TOKEN from cookies for CSRF protection
-  let csrfToken = null;
-  if (document.cookie) {
-    const cookies = document.cookie.split(';');
-    for (const cookie of cookies) {
-      if (cookie.trim().startsWith('XSRF-TOKEN=')) {
-        csrfToken = cookie.trim().substring('XSRF-TOKEN='.length);
-        break;
+
+    if (!cachedCsrfToken) {
+      try {
+        const healthRes = await fetch(`${API_URL}/health`, { credentials: 'include' });
+        if (healthRes.ok) {
+          const healthData = await healthRes.json();
+          if (healthData.csrfToken) {
+            cachedCsrfToken = healthData.csrfToken;
+          }
+        }
+      } catch (e) {
+        console.warn('Failed to pre-fetch CSRF token', e);
       }
     }
   }
 
   const headers = {
     'Content-Type': 'application/json',
-    ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
+    ...(cachedCsrfToken ? { 'X-XSRF-TOKEN': cachedCsrfToken } : {}),
     ...options.headers,
   };
 
