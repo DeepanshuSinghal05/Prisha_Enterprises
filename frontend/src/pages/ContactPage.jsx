@@ -87,7 +87,7 @@ const ContactPage = () => {
 
   const whatsappNumber =
     import.meta.env.VITE_WHATSAPP_NUMBER ||
-    '917177 18175';
+    '91717718175';
 
   const instagramLink =
     import.meta.env.VITE_INSTAGRAM_LINK ||
