@@ -1,0 +1,153 @@
+const { Order, OrderItem, Product, Payment, User, Address } = require('../models');
+const { logError } = require('../utils/logger');
+const { verifyPaymentSignature } = require('../utils/razorpay');
+
+const getMyOrders = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { limit = 20, offset = 0, status } = req.query;
+
+    const where = { user_id: userId };
+
+    if (status) {
+      where.payment_status = status;
+    }
+
+    const orders = await Order.findAll({
+      where,
+      limit: parseInt(limit),
+      offset: parseInt(offset),
+      order: [['created_at', 'DESC']],
+      include: [
+        {
+          model: OrderItem,
+          include: [{ model: Product }]
+        },
+        {
+          model: Payment,
+          attributes: ['id', 'gateway_payment_id', 'amount', 'status', 'method', 'created_at']
+        }
+      ]
+    });
+
+    const total = await Order.count({ where });
+
+    res.json({
+      success: true,
+      orders: orders.map(o => ({
+        id: o.id,
+        total_amount: o.total_amount,
+        payment_status: o.payment_status,
+        order_status: o.order_status,
+        created_at: o.created_at,
+        items: o.OrderItems.map(oi => ({
+          id: oi.id,
+          product_id: oi.product_id,
+          quantity: oi.quantity,
+          price_at_purchase: oi.price_at_purchase,
+          product: {
+            id: oi.Product.id,
+            name: oi.Product.name,
+            image_url: oi.Product.image_url,
+            screen_size: oi.Product.screen_size
+          }
+        })),
+        payment: o.Payment ? {
+          id: o.Payment.id,
+          gateway_payment_id: o.Payment.gateway_payment_id,
+          amount: o.Payment.amount,
+          status: o.Payment.status,
+          method: o.Payment.method,
+          created_at: o.Payment.created_at
+        } : null
+      })),
+      pagination: {
+        total,
+        limit: parseInt(limit),
+        offset: parseInt(offset)
+      }
+    });
+  } catch (error) {
+    logError(error, req);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch orders'
+    });
+  }
+};
+
+const getOrderById = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { id } = req.params;
+
+    const order = await Order.findOne({
+      where: { id, user_id: userId },
+      include: [
+        {
+          model: OrderItem,
+          include: [{ model: Product }]
+        },
+        {
+          model: Payment,
+          attributes: ['id', 'gateway_payment_id', 'gateway_order_id', 'amount', 'status', 'method', 'raw_response', 'created_at']
+        }
+      ]
+    });
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: 'Order not found'
+      });
+    }
+
+    res.json({
+      success: true,
+      order: {
+        id: order.id,
+        total_amount: order.total_amount,
+        payment_status: order.payment_status,
+        order_status: order.order_status,
+        payment_id: order.payment_id,
+        gateway_order_id: order.gateway_order_id,
+        created_at: order.created_at,
+        items: order.OrderItems.map(oi => ({
+          id: oi.id,
+          product_id: oi.product_id,
+          quantity: oi.quantity,
+          price_at_purchase: oi.price_at_purchase,
+          product: {
+            id: oi.Product.id,
+            name: oi.Product.name,
+            image_url: oi.Product.image_url,
+            screen_size: oi.Product.screen_size,
+            resolution: oi.Product.resolution,
+            price: oi.Product.price
+          }
+        })),
+        payment: order.Payment ? {
+          id: order.Payment.id,
+          gateway_payment_id: order.Payment.gateway_payment_id,
+          gateway_order_id: order.Payment.gateway_order_id,
+          amount: order.Payment.amount,
+          status: order.Payment.status,
+          method: order.Payment.method,
+          raw_response: order.Payment.raw_response,
+          created_at: order.Payment.created_at
+        } : null
+      }
+    });
+  } catch (error) {
+    logError(error, req);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch order details'
+    });
+  }
+};
+
+module.exports = {
+  getMyOrders,
+  getOrderById
+};

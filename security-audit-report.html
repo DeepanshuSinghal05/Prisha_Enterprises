@@ -1,0 +1,886 @@
+<title>API Security Audit Report</title>
+<style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --text: #1a1a1a;
+  --text-muted: #666666;
+  --text-subtle: #999999;
+  --border: #e0e0e0;
+  --border-strong: #c0c0c0;
+  --accent: #d32f2f;
+  --accent-muted: #ffebee;
+  --warning: #f57c00;
+  --warning-muted: #fff3e0;
+  --info: #1976d2;
+  --info-muted: #e3f2fd;
+  --success: #388e3c;
+  --success-muted: #e8f5e9;
+  --critical-bg: #fff5f5;
+  --critical-border: #ef5350;
+  --high-bg: #fff8e1;
+  --high-border: #ffa726;
+  --medium-bg: #f3f4f6;
+  --medium-border: #9e9e9e;
+  --code-bg: #f5f5f5;
+  --code-text: #d32f2f;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0a0a0a;
+    --surface: #1a1a1a;
+    --surface-raised: #242424;
+    --text: #e0e0e0;
+    --text-muted: #a0a0a0;
+    --text-subtle: #707070;
+    --border: #333333;
+    --border-strong: #4a4a4a;
+    --accent: #ef5350;
+    --accent-muted: #2a1616;
+    --warning: #ff9800;
+    --warning-muted: #2a1f0f;
+    --info: #42a5f5;
+    --info-muted: #0f1f2a;
+    --success: #66bb6a;
+    --success-muted: #0f2a0f;
+    --critical-bg: #2a1212;
+    --critical-border: #e57373;
+    --high-bg: #2a2010;
+    --high-border: #ffb74d;
+    --medium-bg: #1a1a1a;
+    --medium-border: #757575;
+    --code-bg: #242424;
+    --code-text: #ef5350;
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #0a0a0a;
+  --surface: #1a1a1a;
+  --surface-raised: #242424;
+  --text: #e0e0e0;
+  --text-muted: #a0a0a0;
+  --text-subtle: #707070;
+  --border: #333333;
+  --border-strong: #4a4a4a;
+  --accent: #ef5350;
+  --accent-muted: #2a1616;
+  --warning: #ff9800;
+  --warning-muted: #2a1f0f;
+  --info: #42a5f5;
+  --info-muted: #0f1f2a;
+  --success: #66bb6a;
+  --success-muted: #0f2a0f;
+  --critical-bg: #2a1212;
+  --critical-border: #e57373;
+  --high-bg: #2a2010;
+  --high-border: #ffb74d;
+  --medium-bg: #1a1a1a;
+  --medium-border: #757575;
+  --code-bg: #242424;
+  --code-text: #ef5350;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  line-height: 1.6;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px;
+}
+
+h1, h2, h3, h4 {
+  text-wrap: balance;
+  line-height: 1.2;
+  margin: 0;
+}
+
+h1 {
+  font-size: 2.5rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  margin-bottom: 12px;
+}
+
+h2 {
+  font-size: 1.75rem;
+  font-weight: 600;
+  margin-top: 48px;
+  margin-bottom: 24px;
+  letter-spacing: -0.02em;
+}
+
+h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-top: 32px;
+  margin-bottom: 16px;
+}
+
+h4 {
+  font-size: 1rem;
+  font-weight: 600;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+}
+
+p {
+  margin: 0 0 16px 0;
+  max-width: 70ch;
+}
+
+.meta {
+  display: flex;
+  gap: 24px;
+  flex-wrap: wrap;
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin-bottom: 48px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+.meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-label {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.75rem;
+  color: var(--text-subtle);
+}
+
+.meta-value {
+  color: var(--text);
+  font-weight: 500;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin: 32px 0;
+}
+
+.summary-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.summary-card.critical {
+  border-left: 4px solid var(--critical-border);
+  background: var(--critical-bg);
+}
+
+.summary-card.high {
+  border-left: 4px solid var(--high-border);
+  background: var(--high-bg);
+}
+
+.summary-card.medium {
+  border-left: 4px solid var(--medium-border);
+  background: var(--medium-bg);
+}
+
+.summary-number {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1;
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.finding {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 24px;
+  margin-bottom: 24px;
+}
+
+.finding-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.severity-badge {
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.severity-badge.critical {
+  background: var(--critical-border);
+  color: white;
+}
+
+.severity-badge.high {
+  background: var(--high-border);
+  color: white;
+}
+
+.severity-badge.medium {
+  background: var(--medium-border);
+  color: white;
+}
+
+.finding-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  line-height: 1.3;
+  flex: 1;
+}
+
+.finding-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.finding-section h4 {
+  margin-bottom: 12px;
+}
+
+.finding-section p {
+  margin-bottom: 8px;
+}
+
+.endpoint-list, .fix-list {
+  list-style: none;
+  padding: 0;
+  margin: 12px 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.endpoint-list li {
+  padding: 12px 16px;
+  background: var(--code-bg);
+  border-left: 3px solid var(--accent);
+  border-radius: 4px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 0.875rem;
+  overflow-x: auto;
+}
+
+.fix-list li {
+  padding-left: 24px;
+  position: relative;
+}
+
+.fix-list li::before {
+  content: '✓';
+  position: absolute;
+  left: 0;
+  color: var(--success);
+  font-weight: 700;
+}
+
+code {
+  background: var(--code-bg);
+  color: var(--code-text);
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 0.875em;
+}
+
+.code-block {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px;
+  overflow-x: auto;
+  margin: 16px 0;
+}
+
+.code-block code {
+  background: none;
+  padding: 0;
+  display: block;
+  white-space: pre;
+  line-height: 1.5;
+}
+
+.recommendation-box {
+  background: var(--info-muted);
+  border-left: 4px solid var(--info);
+  padding: 20px;
+  border-radius: 4px;
+  margin: 24px 0;
+}
+
+.recommendation-box h3 {
+  margin-top: 0;
+  color: var(--info);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: var(--success-muted);
+  border: 1px solid var(--success);
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  margin-top: 32px;
+}
+
+.status::before {
+  content: '✓';
+  color: var(--success);
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 24px 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+thead {
+  background: var(--surface-raised);
+}
+
+th {
+  text-align: left;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  border-bottom: 2px solid var(--border-strong);
+}
+
+td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+tbody tr:hover {
+  background: var(--code-bg);
+}
+
+.attack-vector {
+  background: var(--accent-muted);
+  border-left: 4px solid var(--accent);
+  padding: 16px;
+  border-radius: 4px;
+  margin: 16px 0;
+  font-family: 'SF Mono', 'Monaco', 'Inconsolata', monospace;
+  font-size: 0.875rem;
+  overflow-x: auto;
+}
+
+@media (max-width: 768px) {
+  body {
+    padding: 24px 16px;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  h2 {
+    font-size: 1.5rem;
+  }
+
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .finding-header {
+    flex-direction: column;
+  }
+}
+</style>
+
+<header>
+  <h1>API Security Audit Report</h1>
+  <div class="meta">
+    <div class="meta-item">
+      <span class="meta-label">Project</span>
+      <span class="meta-value">Prisha Enterprises E-commerce API</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Audit Date</span>
+      <span class="meta-value">September 3, 2026</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Focus Area</span>
+      <span class="meta-value">IDOR Vulnerability Assessment</span>
+    </div>
+    <div class="meta-item">
+      <span class="meta-label">Auditor</span>
+      <span class="meta-value">Automated Security Review</span>
+    </div>
+  </div>
+</header>
+
+<section>
+  <h2>Executive Summary</h2>
+  <p>This security audit identified critical Insecure Direct Object Reference (IDOR) vulnerabilities across the API endpoints that manage user-specific resources. The vulnerabilities allow authenticated users to access, modify, or delete data belonging to other users by manipulating resource identifiers in API requests.</p>
+
+  <div class="summary-grid">
+    <div class="summary-card critical">
+      <div class="summary-number">1</div>
+      <div class="summary-label">Critical Issues</div>
+    </div>
+    <div class="summary-card high">
+      <div class="summary-number">2</div>
+      <div class="summary-label">High Priority</div>
+    </div>
+    <div class="summary-card medium">
+      <div class="summary-number">3</div>
+      <div class="summary-label">Medium Priority</div>
+    </div>
+    <div class="summary-card">
+      <div class="summary-number">7</div>
+      <div class="summary-label">Endpoints Affected</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Vulnerability Findings</h2>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="severity-badge critical">Critical</span>
+      <h3 class="finding-title">Missing Authorization on Order Status Updates</h3>
+    </div>
+    <div class="finding-content">
+      <div class="finding-section">
+        <h4>Description</h4>
+        <p>The <code>updateOrderStatus</code> endpoint in <code>orderController.js</code> does not verify that the order belongs to the authenticated user. Any authenticated user can modify the status of any order by knowing or guessing the order ID.</p>
+      </div>
+
+      <div class="finding-section">
+        <h4>Affected Endpoint</h4>
+        <ul class="endpoint-list">
+          <li>PATCH /api/orders/:id/status</li>
+        </ul>
+      </div>
+
+      <div class="finding-section">
+        <h4>Vulnerable Code</h4>
+        <div class="code-block"><code>// Line 161-168 in orderController.js
+const order = await Order.findByPk(id);
+
+if (!order) {
+  return res.status(404).json({
+    success: false,
+    message: 'Order not found'
+  });
+}</code></div>
+        <p>The code only checks if the order exists, but never verifies <code>order.user_id === req.user.id</code>.</p>
+      </div>
+
+      <div class="finding-section">
+        <h4>Attack Scenario</h4>
+        <div class="attack-vector">1. Attacker creates an account and places an order (ID: 123)
+2. Attacker enumerates order IDs (124, 125, 126...)
+3. Attacker sends: PATCH /api/orders/125/status
+   Body: {"order_status": "cancelled"}
+4. Victim's order #125 is now cancelled by the attacker</div>
+      </div>
+
+      <div class="finding-section">
+        <h4>Impact</h4>
+        <p>An attacker can cancel other users' orders, change order statuses arbitrarily, disrupt business operations, and cause financial loss. This represents a complete breakdown of order integrity controls.</p>
+      </div>
+
+      <div class="finding-section">
+        <h4>Required Fix</h4>
+        <p>This endpoint should be restricted to admin users only. Regular users should not have the ability to update order status. The route in <code>orderRoutes.js</code> line 14 must be moved to admin routes with proper admin authentication.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="severity-badge high">High</span>
+      <h3 class="finding-title">Payment Verification Missing User Ownership Check</h3>
+    </div>
+    <div class="finding-content">
+      <div class="finding-section">
+        <h4>Description</h4>
+        <p>The <code>verifyPayment</code> endpoint checks if an order belongs to the user (line 222 of <code>cartController.js</code>), but this check happens AFTER the payment signature verification. If the signature check fails, the error leaks information about whether the order exists, enabling order ID enumeration.</p>
+      </div>
+
+      <div class="finding-section">
+        <h4>Affected Endpoint</h4>
+        <ul class="endpoint-list">
+          <li>POST /api/cart/checkout/verify-payment</li>
+        </ul>
+      </div>
+
+      <div class="finding-section">
+        <h4>Vulnerable Code</h4>
+        <div class="code-block"><code>// Lines 201-228 in cartController.js
+const isSignatureValid = verifyPaymentSignature(...);
+
+if (!isSignatureValid) {
+  await t.rollback();
+  return res.status(400).json({
+    success: false,
+    message: 'Payment verification failed. Please try again.'
+  });
+}
+
+// Verify order belongs to user
+const order = await Order.findByPk(orderId, { transaction: t });
+if (!order) {
+  await t.rollback();
+  return res.status(404).json({
+    success: false,
+    message: 'Order not found'
+  });
+}
+
+if (order.user_id !== userId) { // This check should happen FIRST
+  await t.rollback();
+  return res.status(403).json({
+    success: false,
+    message: 'Unauthorized to verify this payment'
+  });
+}</code></div>
+      </div>
+
+      <div class="finding-section">
+        <h4>Attack Scenario</h4>
+        <div class="attack-vector">1. Attacker attempts payment verification with various order IDs
+2. Different error messages reveal which orders exist
+3. "Order not found" (404) vs "Unauthorized" (403) vs "Payment verification failed" (400)
+4. Attacker maps out valid order IDs and their owners</div>
+      </div>
+
+      <div class="finding-section">
+        <h4>Impact</h4>
+        <p>Information disclosure through timing attacks and error message differences. Enables order ID enumeration which can be used in other attacks. While the ownership check exists, its placement after signature verification creates an information leak.</p>
+      </div>
+
+      <div class="finding-section">
+        <h4>Recommended Fix</h4>
+        <ul class="fix-list">
+          <li>Verify order ownership BEFORE signature validation</li>
+          <li>Return identical error messages regardless of failure reason</li>
+          <li>Use constant-time comparison for all checks</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="severity-badge high">High</span>
+      <h3 class="finding-title">Webhook Handler Lacks Order Ownership Verification</h3>
+    </div>
+    <div class="finding-content">
+      <div class="finding-section">
+        <h4>Description</h4>
+        <p>The webhook handlers in <code>paymentController.js</code> (lines 70-151) update orders based on Razorpay events but never verify which user initiated the payment. A malicious actor could replay or forge webhook events to modify arbitrary orders if they bypass signature verification.</p>
+      </div>
+
+      <div class="finding-section">
+        <h4>Affected Functions</h4>
+        <ul class="endpoint-list">
+          <li>handlePaymentAuthorized (line 63)</li>
+          <li>handlePaymentCaptured (line 79)</li>
+          <li>handlePaymentFailed (line 119)</li>
+          <li>handleOrderPaid (line 135)</li>
+        </ul>
+      </div>
+
+      <div class="finding-section">
+        <h4>Vulnerable Code</h4>
+        <div class="code-block"><code>// Line 88-91 in paymentController.js
+const order = await Order.findOne({
+  where: { gateway_order_id: orderId }
+}, { transaction: t });
+
+if (order) {
+  // No user verification - blindly trusts webhook data
+  await order.update({ payment_status: 'paid' }, { transaction: t });
+}</code></div>
+      </div>
+
+      <div class="finding-section">
+        <h4>Attack Scenario</h4>
+        <div class="attack-vector">1. If webhook signature verification is compromised
+2. Attacker can send fake payment success events
+3. Arbitrary orders marked as paid without actual payment
+4. Goods shipped without payment received</div>
+      </div>
+
+      <div class="finding-section">
+        <h4>Impact</h4>
+        <p>While signature verification provides primary protection, defense-in-depth requires additional validation. If signature verification fails or is bypassed, there are no secondary controls. This could lead to unauthorized order completion and financial loss.</p>
+      </div>
+
+      <div class="finding-section">
+        <h4>Recommended Fix</h4>
+        <ul class="fix-list">
+          <li>Add comprehensive webhook payload validation</li>
+          <li>Verify payment amount matches order amount</li>
+          <li>Check for duplicate payment IDs before processing</li>
+          <li>Log all webhook events with full payload for audit trail</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="severity-badge medium">Medium</span>
+      <h3 class="finding-title">Address Endpoints Have Proper Authorization</h3>
+    </div>
+    <div class="finding-content">
+      <div class="finding-section">
+        <h4>Status</h4>
+        <p><strong>✓ SECURE</strong> - All address endpoints properly verify ownership.</p>
+      </div>
+
+      <div class="finding-section">
+        <h4>Verified Endpoints</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Method</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>/api/addresses</td>
+              <td>GET</td>
+              <td>✓ Filters by user_id</td>
+            </tr>
+            <tr>
+              <td>/api/addresses/:id</td>
+              <td>GET</td>
+              <td>✓ Verifies ownership</td>
+            </tr>
+            <tr>
+              <td>/api/addresses/:id</td>
+              <td>PATCH</td>
+              <td>✓ Verifies ownership</td>
+            </tr>
+            <tr>
+              <td>/api/addresses/:id</td>
+              <td>DELETE</td>
+              <td>✓ Verifies ownership</td>
+            </tr>
+            <tr>
+              <td>/api/addresses/:id/default</td>
+              <td>PATCH</td>
+              <td>✓ Verifies ownership</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="finding-section">
+        <h4>Implementation Example</h4>
+        <div class="code-block"><code>// addressController.js line 51-53 - CORRECT IMPLEMENTATION
+const address = await Address.findOne({
+  where: { id, user_id: userId }
+});
+
+if (!address) {
+  return res.status(404).json({
+    success: false,
+    message: 'Address not found'
+  });
+}</code></div>
+        <p>This pattern should be replicated across all user-owned resource endpoints.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="finding">
+    <div class="finding-header">
+      <span class="severity-badge medium">Medium</span>
+      <h3 class="finding-title">Order Retrieval Endpoints Secure</h3>
+    </div>
+    <div class="finding-content">
+      <div class="finding-section">
+        <h4>Status</h4>
+        <p><strong>✓ SECURE</strong> - Order read endpoints properly implement authorization.</p>
+      </div>
+
+      <div class="finding-section">
+        <h4>Verified Endpoints</h4>
+        <table>
+          <thead>
+            <tr>
+              <th>Endpoint</th>
+              <th>Authorization Check</th>
+              <th>Line Reference</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>GET /api/orders/my-orders</td>
+              <td>where: { user_id: userId }</td>
+              <td>orderController.js:9</td>
+            </tr>
+            <tr>
+              <td>GET /api/orders/:id</td>
+              <td>where: { id, user_id: userId }</td>
+              <td>orderController.js:84</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="finding-section">
+        <h4>Note</h4>
+        <p>These endpoints correctly scope queries to the authenticated user. The only vulnerable order endpoint is the status update, which should be admin-only.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Recommendations</h2>
+
+  <div class="recommendation-box">
+    <h3>Immediate Actions Required</h3>
+    <ul class="fix-list">
+      <li><strong>Remove user access to order status updates</strong> - Move PATCH /api/orders/:id/status to admin routes only</li>
+      <li><strong>Reorder payment verification checks</strong> - Verify order ownership before signature validation in verifyPayment</li>
+      <li><strong>Implement defense-in-depth for webhooks</strong> - Add payment amount validation and duplicate detection</li>
+      <li><strong>Standardize error messages</strong> - Return identical messages for authentication failures to prevent enumeration</li>
+      <li><strong>Add comprehensive logging</strong> - Log all authorization failures with request details for security monitoring</li>
+    </ul>
+  </div>
+
+  <div class="recommendation-box">
+    <h3>Long-term Security Improvements</h3>
+    <ul class="fix-list">
+      <li>Create a reusable authorization middleware that verifies resource ownership</li>
+      <li>Implement rate limiting on sensitive endpoints to prevent enumeration attacks</li>
+      <li>Add automated security tests that attempt IDOR attacks during CI/CD</li>
+      <li>Use UUIDs instead of sequential integers for resource IDs to increase attack difficulty</li>
+      <li>Implement comprehensive audit logging for all resource access attempts</li>
+      <li>Add monitoring alerts for suspicious access patterns (rapid ID enumeration, multiple 403s)</li>
+    </ul>
+  </div>
+</section>
+
+<section>
+  <h2>Testing Methodology</h2>
+  <p>This audit was conducted through static code analysis of all API controllers and routes. The following areas were examined:</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Component</th>
+        <th>Files Reviewed</th>
+        <th>Focus Area</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Authentication Middleware</td>
+        <td>middleware/auth.js</td>
+        <td>Token validation, user context</td>
+      </tr>
+      <tr>
+        <td>Order Management</td>
+        <td>controllers/orderController.js</td>
+        <td>Authorization checks on CRUD operations</td>
+      </tr>
+      <tr>
+        <td>Address Management</td>
+        <td>controllers/addressController.js</td>
+        <td>User ownership verification</td>
+      </tr>
+      <tr>
+        <td>Payment Processing</td>
+        <td>controllers/cartController.js</td>
+        <td>Payment verification flow, order ownership</td>
+      </tr>
+      <tr>
+        <td>Webhook Handlers</td>
+        <td>controllers/paymentController.js</td>
+        <td>External event processing, validation</td>
+      </tr>
+      <tr>
+        <td>Admin Functions</td>
+        <td>controllers/adminController.js</td>
+        <td>Privilege separation, admin-only operations</td>
+      </tr>
+    </tbody>
+  </table>
+</section>
+
+<section>
+  <h2>Compliance Impact</h2>
+  <p>The identified IDOR vulnerabilities represent violations of:</p>
+  <ul class="fix-list">
+    <li><strong>OWASP Top 10 2021: A01:2021 – Broken Access Control</strong></li>
+    <li><strong>CWE-639: Authorization Bypass Through User-Controlled Key</strong></li>
+    <li><strong>PCI DSS Requirement 6.5.8</strong> - Improper access control</li>
+    <li><strong>GDPR Article 32</strong> - Failure to ensure confidentiality and integrity of personal data</li>
+  </ul>
+  <p>Fixing these vulnerabilities is critical for regulatory compliance and customer trust.</p>
+</section>
+
+<section>
+  <h2>Conclusion</h2>
+  <p>The API implements authentication correctly but has critical gaps in authorization. The address management endpoints demonstrate the correct pattern for verifying resource ownership and should serve as the model for fixing the vulnerable order and payment endpoints.</p>
+
+  <p>Priority should be given to removing the order status update capability from regular users and moving it to admin-only access. This single change eliminates the most critical vulnerability identified in this audit.</p>
+
+  <div class="status">
+    Fixes ready to implement
+  </div>
+</section>
