@@ -34,7 +34,7 @@ module.exports = {
       bigNumberStrings: true,
       ssl: {
         require: true,
-        rejectUnauthorized: true
+        rejectUnauthorized: false
       }
     },
     pool: {

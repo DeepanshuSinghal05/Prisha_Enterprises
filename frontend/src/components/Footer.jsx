@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
+import logo from '../assets/logo.jpg';
 import {
   FaInstagram,
   FaYoutube,
@@ -25,11 +26,11 @@ const Footer = () => {
 
   const businessPhone =
     import.meta.env.VITE_BUSINESS_PHONE ||
-    '+91 99999 99999';
+    '+91 97177 18175';
 
   const businessAddress =
     import.meta.env.VITE_BUSINESS_ADDRESS ||
-    '123 Business Street, City, State - 000000';
+    '60, Mirzajaan, Sihani Gate, Bihari Nagar, Naya Ganj, Ghaziabad, Uttar Pradesh 20100';
 
   const quickLinks = [
     { name: 'Home', path: '/' },
@@ -57,7 +58,7 @@ const Footer = () => {
           <div className="space-y-6">
             <Link to="/" className="flex items-center space-x-3">
               <img
-                src="/src/assets/logo.jpg"
+                src={logo}
                 alt="Prisha Enterprises"
                 className="h-12 w-auto rounded bg-white p-1"
               />
