@@ -66,12 +66,15 @@ export const apiRequest = async (endpoint, options = {}, isRetry = false) => {
   }
 
   // Handle 401 Unauthorized via Token Refresh
-  if (response.status === 401 && !isRetry && endpoint !== '/auth/refresh' && !endpoint.startsWith('/admin')) {
+  if (response.status === 401 && !isRetry && !endpoint.startsWith('/auth/') && !endpoint.startsWith('/admin')) {
     try {
       // Try to refresh token
       const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(cachedCsrfToken ? { 'X-XSRF-TOKEN': cachedCsrfToken } : {})
+        },
         credentials: 'include'
       });
 
