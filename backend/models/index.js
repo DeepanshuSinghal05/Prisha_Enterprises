@@ -9,10 +9,11 @@ const sequelize = new Sequelize(databaseName, database.username, database.passwo
   host: database.host,
   port: database.port,
   dialect: 'mysql',
-  logging: console.log,
-  dialectOptions: {
+  logging: process.env.NODE_ENV === 'production' ? false : console.log,
+  dialectOptions: database.dialectOptions || {
     bigNumberStrings: true
-  }
+  },
+  ...(database.pool && { pool: database.pool })
 });
 
 // Test connection
