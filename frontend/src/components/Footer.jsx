@@ -22,7 +22,7 @@ const Footer = () => {
 
   const businessEmail =
     import.meta.env.VITE_BUSINESS_EMAIL ||
-    'info@prishaenterprises.com';
+    'enterprisesprisha82@gmail.com';
 
   const businessPhone =
     import.meta.env.VITE_BUSINESS_PHONE ||
