@@ -9,8 +9,11 @@ const getMyOrders = async (req, res) => {
 
     const where = { user_id: userId };
 
+    // Default to showing only confirmed orders unless a specific status is requested
     if (status) {
-      where.payment_status = status;
+      where.order_status = status;
+    } else {
+      where.order_status = 'confirmed';
     }
 
     const orders = await Order.findAll({
@@ -21,10 +24,12 @@ const getMyOrders = async (req, res) => {
       include: [
         {
           model: OrderItem,
-          include: [{ model: Product }]
+          as: 'items',
+          include: [{ model: Product, as: 'product' }]
         },
         {
           model: Payment,
+          as: 'payment',
           attributes: ['id', 'gateway_payment_id', 'amount', 'status', 'method', 'created_at']
         }
       ]
@@ -40,25 +45,25 @@ const getMyOrders = async (req, res) => {
         payment_status: o.payment_status,
         order_status: o.order_status,
         created_at: o.created_at,
-        items: o.OrderItems.map(oi => ({
+        items: o.items.map(oi => ({
           id: oi.id,
           product_id: oi.product_id,
           quantity: oi.quantity,
           price_at_purchase: oi.price_at_purchase,
           product: {
-            id: oi.Product.id,
-            name: oi.Product.name,
-            image_url: oi.Product.image_url,
-            screen_size: oi.Product.screen_size
+            id: oi.product.id,
+            name: oi.product.name,
+            image_url: oi.product.image_url,
+            screen_size: oi.product.screen_size
           }
         })),
-        payment: o.Payment ? {
-          id: o.Payment.id,
-          gateway_payment_id: o.Payment.gateway_payment_id,
-          amount: o.Payment.amount,
-          status: o.Payment.status,
-          method: o.Payment.method,
-          created_at: o.Payment.created_at
+        payment: o.payment && o.payment.length > 0 ? {
+          id: o.payment[0].id,
+          gateway_payment_id: o.payment[0].gateway_payment_id,
+          amount: o.payment[0].amount,
+          status: o.payment[0].status,
+          method: o.payment[0].method,
+          created_at: o.payment[0].created_at
         } : null
       })),
       pagination: {
@@ -86,10 +91,12 @@ const getOrderById = async (req, res) => {
       include: [
         {
           model: OrderItem,
-          include: [{ model: Product }]
+          as: 'items',
+          include: [{ model: Product, as: 'product' }]
         },
         {
           model: Payment,
+          as: 'payment',
           attributes: ['id', 'gateway_payment_id', 'gateway_order_id', 'amount', 'status', 'method', 'raw_response', 'created_at']
         }
       ]
@@ -112,29 +119,29 @@ const getOrderById = async (req, res) => {
         payment_id: order.payment_id,
         gateway_order_id: order.gateway_order_id,
         created_at: order.created_at,
-        items: order.OrderItems.map(oi => ({
+        items: order.items.map(oi => ({
           id: oi.id,
           product_id: oi.product_id,
           quantity: oi.quantity,
           price_at_purchase: oi.price_at_purchase,
           product: {
-            id: oi.Product.id,
-            name: oi.Product.name,
-            image_url: oi.Product.image_url,
-            screen_size: oi.Product.screen_size,
-            resolution: oi.Product.resolution,
-            price: oi.Product.price
+            id: oi.product.id,
+            name: oi.product.name,
+            image_url: oi.product.image_url,
+            screen_size: oi.product.screen_size,
+            resolution: oi.product.resolution,
+            price: oi.product.price
           }
         })),
-        payment: order.Payment ? {
-          id: order.Payment.id,
-          gateway_payment_id: order.Payment.gateway_payment_id,
-          gateway_order_id: order.Payment.gateway_order_id,
-          amount: order.Payment.amount,
-          status: order.Payment.status,
-          method: order.Payment.method,
-          raw_response: order.Payment.raw_response,
-          created_at: order.Payment.created_at
+        payment: order.payment && order.payment.length > 0 ? {
+          id: order.payment[0].id,
+          gateway_payment_id: order.payment[0].gateway_payment_id,
+          gateway_order_id: order.payment[0].gateway_order_id,
+          amount: order.payment[0].amount,
+          status: order.payment[0].status,
+          method: order.payment[0].method,
+          raw_response: order.payment[0].raw_response,
+          created_at: order.payment[0].created_at
         } : null
       }
     });

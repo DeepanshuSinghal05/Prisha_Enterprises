@@ -15,6 +15,7 @@ const AuthPage = lazy(() => import('./pages/AuthPage'));
 const CartPage = lazy(() => import('./pages/CartPage'));
 const CheckoutPage = lazy(() => import('./pages/CheckoutPage'));
 const MyOrdersPage = lazy(() => import('./pages/MyOrdersPage'));
+const OrderDetailPage = lazy(() => import('./pages/OrderDetailPage'));
 
 // Admin pages
 const AdminLoginPage = lazy(() => import('./pages/admin/AdminLoginPage'));
@@ -121,7 +122,7 @@ function App() {
                         } />
                         <Route path="/orders/:id" element={
                           <ProtectedRoute>
-                            <MyOrdersPage />
+                            <OrderDetailPage />
                           </ProtectedRoute>
                         } />
                         <Route path="/my-orders" element={

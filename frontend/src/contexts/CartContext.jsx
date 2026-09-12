@@ -1,12 +1,7 @@
 import { createContext, useContext, useState, useEffect, useMemo } from 'react';
 
-// Helper to get product price (using static products for price calculation)
-const products = [
-  { id: 1, price: 7500 }, { id: 2, price: 10500 }, { id: 3, price: 12500 },
-  { id: 4, price: 15500 }, { id: 5, price: 17500 }, { id: 6, price: 21500 },
-  { id: 7, price: 24500 }, { id: 8, price: 28500 }, { id: 9, price: 35500 },
-  { id: 10, price: 42500 }
-];
+// Product details kept in local cart state are display-only. The checkout API
+// always reloads products and calculates the final amount from database prices.
 
 const CartContext = createContext();
 
@@ -38,17 +33,26 @@ export function CartProvider({ children }) {
     localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(items));
   }, [items]);
 
-  const addToCart = (productId, quantity = 1) => {
+  const addToCart = (product, quantity = 1) => {
+    const productId = typeof product === 'object' ? product.id : product;
+    const displayDetails = typeof product === 'object'
+      ? {
+          name: product.name,
+          price: Number(product.price),
+          image_url: product.image_url || product.image || null
+        }
+      : {};
+
     setItems(prev => {
       const existing = prev.find(item => item.productId === productId);
       if (existing) {
         return prev.map(item =>
           item.productId === productId
-            ? { ...item, quantity: item.quantity + quantity }
+            ? { ...item, ...displayDetails, quantity: item.quantity + quantity }
             : item
         );
       }
-      return [...prev, { productId, quantity }];
+      return [...prev, { productId, quantity, ...displayDetails }];
     });
   };
 
@@ -78,12 +82,12 @@ export function CartProvider({ children }) {
     return items.reduce((sum, item) => sum + item.quantity, 0);
   }, [items]);
 
-  // Calculate cart total
+  // Display estimate only; the backend supplies the authoritative total at checkout.
   const cartTotal = useMemo(() => {
-    return items.reduce((sum, item) => {
-      const product = products.find(p => p.id === item.productId);
-      return sum + (product?.price || 0) * item.quantity;
-    }, 0);
+    return items.reduce(
+      (sum, item) => sum + (Number(item.price) || 0) * item.quantity,
+      0
+    );
   }, [items]);
 
   const value = {

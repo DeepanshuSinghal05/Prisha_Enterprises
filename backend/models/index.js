@@ -48,13 +48,13 @@ const defineAssociations = () => {
   AdminActionLog.belongsTo(User, { foreignKey: 'admin_user_id', as: 'admin' });
 
   // Order associations
-  Order.belongsTo(User, { foreignKey: 'user_id' });
-  Order.hasMany(OrderItem, { foreignKey: 'order_id', onDelete: 'CASCADE' });
-  Order.hasMany(Payment, { foreignKey: 'order_id', onDelete: 'CASCADE' });
+  Order.belongsTo(User, { foreignKey: 'user_id', as: 'user' });
+  Order.hasMany(OrderItem, { foreignKey: 'order_id', as: 'items', onDelete: 'CASCADE' });
+  Order.hasMany(Payment, { foreignKey: 'order_id', as: 'payment', onDelete: 'CASCADE' });
 
   // OrderItem associations
   OrderItem.belongsTo(Order, { foreignKey: 'order_id' });
-  OrderItem.belongsTo(Product, { foreignKey: 'product_id' });
+  OrderItem.belongsTo(Product, { foreignKey: 'product_id', as: 'product' });
 
   // Payment associations
   Payment.belongsTo(Order, { foreignKey: 'order_id' });

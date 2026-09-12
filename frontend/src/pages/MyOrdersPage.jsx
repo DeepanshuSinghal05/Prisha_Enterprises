@@ -20,7 +20,7 @@ const MyOrdersPage = () => {
     try {
       setLoading(true);
       const response = await orderAPI.getMyOrders();
-      setOrders(response.data.orders || []);
+      setOrders(response.orders || []);
     } catch (err) {
       setError('Failed to load orders. Please try again.');
       console.error(err);

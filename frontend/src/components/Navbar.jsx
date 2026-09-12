@@ -35,6 +35,7 @@ const Navbar = () => {
     { name: 'Deals & Offers', path: '/deals', hasBadge: true },
     { name: 'About Us', path: '/about' },
     { name: 'Contact', path: '/contact' },
+    ...(isAuthenticated ? [{ name: 'My Orders', path: '/my-orders' }] : []),
   ];
 
   const isActive = (path) => location.pathname === path;

@@ -1104,7 +1104,7 @@ const HomePage = () => {
                     ₹{product.price.toLocaleString('en-IN')}
                   </p>
 
-                  <Link to="/products" className="pe-product-link">
+                  <Link to={`/product/${product.id}`} className="pe-product-link">
                     View Details
                     <FaArrowRight />
                   </Link>

@@ -9,7 +9,7 @@ const { User, AdminActionLog } = require('../models');
 const authenticateAdmin = async (req, res, next) => {
   try {
     // Only check httpOnly cookie for XSS protection
-    const token = req.cookies.admin_token || req.cookies.accessToken;
+    const token = req.cookies.admin_token;
 
     if (!token) {
       return res.status(401).json({
@@ -57,8 +57,16 @@ const authenticateAdmin = async (req, res, next) => {
 
 /**
  * Log admin action for audit trail
+ * @param {number} adminId - ID of the admin performing the action
+ * @param {string} actionType - Type of action (e.g., 'ORDER_STATUS_UPDATE', 'ADMIN_LOGIN')
+ * @param {string} targetType - Type of target (e.g., 'order', 'admin', 'product')
+ * @param {string|number} targetId - ID of the target entity
+ * @param {object|null} oldValue - Previous state (will be JSON stringified)
+ * @param {object|null} newValue - New state (will be JSON stringified)
+ * @param {string|null} ipAddress - Client IP address for audit trail
+ * @param {object} [req] - Optional Express request object for error logging context
  */
-const logAdminAction = async (adminId, actionType, targetType, targetId, oldValue = null, newValue = null, ipAddress = null) => {
+const logAdminAction = async (adminId, actionType, targetType, targetId, oldValue = null, newValue = null, ipAddress = null, req = null) => {
   try {
     await AdminActionLog.create({
       admin_user_id: adminId,
@@ -70,7 +78,9 @@ const logAdminAction = async (adminId, actionType, targetType, targetId, oldValu
       ip_address: ipAddress
     });
   } catch (error) {
-    logError(error, req);
+    // Log the error with whatever context we have - use req if available for better debugging
+    const errorContext = req || { path: 'unknown', method: 'unknown', ip: ipAddress };
+    logError(error, errorContext);
     // Don't throw - logging failure shouldn't break the main operation
   }
 };

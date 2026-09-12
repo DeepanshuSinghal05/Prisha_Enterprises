@@ -19,7 +19,7 @@ const adminLoginLimiter = rateLimit({
   skipSuccessfulRequests: true
 });
 
-// Admin login - public route with rate limiting
+// CSRF-exempt login: no authenticated browser session exists yet; rate limiting and credential validation apply.
 router.post('/login', adminLoginLimiter, validate(adminValidators.login), adminController.login);
 
 // Admin logout

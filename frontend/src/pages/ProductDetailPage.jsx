@@ -58,7 +58,7 @@ const ProductDetailPage = () => {
   }, [id, navigate]);
 
   const handleAddToCart = () => {
-    addToCart(product.id, quantity);
+    addToCart(product, quantity);
     toast.success(`${product.name} added to cart!`, {
       position: "bottom-right",
       autoClose: 3000,

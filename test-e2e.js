@@ -4,7 +4,7 @@ let csrfTokenGlobal = '';
 const customerEmail = `testcustomer@test.com`;
 const customerPassword = `Password123!`;
 const adminEmail = `admin@prishaenterprises.com`;
-const adminPassword = `AdminPassword123!`;
+const adminPassword = `Admin@123`;
 
 class Session {
   constructor() {
@@ -117,7 +117,7 @@ async function runTests() {
   res = await req('/admin/login', 'POST', { email: adminEmail, password: adminPassword }, adminSession);
   console.log(`2a. Admin Login -> Status: ${res.status}`);
   let adminLoggedIn = false;
-  if (res.status === 200 && adminSession.cookies.has('accessToken')) {
+  if (res.status === 200 && adminSession.cookies.has('admin_token')) {
       console.log('   Result: PASS');
       adminLoggedIn = true;
   } else {

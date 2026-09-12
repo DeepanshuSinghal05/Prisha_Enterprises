@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "seed": "node seeds/seed.js"
+    "seed": "node seeds/seed.js",
+    "migrate": "sequelize db:migrate",
+    "migrate:undo": "sequelize db:migrate:undo",
+    "migrate:status": "sequelize db:migrate:status"
   },
   "dependencies": {
     "bcrypt": "^5.1.1",
@@ -27,6 +30,7 @@
   },
   "devDependencies": {
     "nodemon": "^3.0.1",
+    "sequelize-cli": "^6.6.5",
     "supertest": "^7.2.2"
   }
 }

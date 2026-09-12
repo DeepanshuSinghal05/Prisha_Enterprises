@@ -5,9 +5,7 @@
  */
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-
-// Cache the CSRF token in memory for cross-domain requests
-let cachedCsrfToken = null;
+import { getCsrfToken, isMutatingMethod } from './csrf';
 
 /**
  * Generic API request handler
@@ -15,36 +13,11 @@ let cachedCsrfToken = null;
 export const apiRequest = async (endpoint, options = {}, isRetry = false) => {
   const method = (options.method || 'GET').toUpperCase();
 
-  // If mutating request and no CSRF cookie, fetch it first
-  if (!['GET', 'HEAD', 'OPTIONS'].includes(method)) {
-    if (!cachedCsrfToken && document.cookie) {
-      const cookies = document.cookie.split(';');
-      for (const cookie of cookies) {
-        if (cookie.trim().startsWith('XSRF-TOKEN=')) {
-          cachedCsrfToken = cookie.trim().substring('XSRF-TOKEN='.length);
-          break;
-        }
-      }
-    }
-
-    if (!cachedCsrfToken) {
-      try {
-        const healthRes = await fetch(`${API_URL}/health`, { credentials: 'include' });
-        if (healthRes.ok) {
-          const healthData = await healthRes.json();
-          if (healthData.csrfToken) {
-            cachedCsrfToken = healthData.csrfToken;
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to pre-fetch CSRF token', e);
-      }
-    }
-  }
+  const csrfToken = isMutatingMethod(method) ? await getCsrfToken() : null;
 
   const headers = {
     'Content-Type': 'application/json',
-    ...(cachedCsrfToken ? { 'X-XSRF-TOKEN': cachedCsrfToken } : {}),
+    ...(csrfToken ? { 'X-XSRF-TOKEN': csrfToken } : {}),
     ...options.headers,
   };
 
@@ -69,11 +42,12 @@ export const apiRequest = async (endpoint, options = {}, isRetry = false) => {
   if (response.status === 401 && !isRetry && !endpoint.startsWith('/auth/') && !endpoint.startsWith('/admin')) {
     try {
       // Try to refresh token
+      const refreshCsrfToken = await getCsrfToken();
       const refreshResponse = await fetch(`${API_URL}/auth/refresh`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(cachedCsrfToken ? { 'X-XSRF-TOKEN': cachedCsrfToken } : {})
+          ...(refreshCsrfToken ? { 'X-XSRF-TOKEN': refreshCsrfToken } : {})
         },
         credentials: 'include'
       });

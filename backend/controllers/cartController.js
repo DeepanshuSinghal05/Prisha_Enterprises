@@ -247,9 +247,10 @@ const verifyPayment = async (req, res) => {
       });
     }
 
-    // Update order status to paid
+    // Update order status to paid and confirmed
     await order.update({
       payment_status: 'paid',
+      order_status: 'confirmed',
       payment_id: razorpayPaymentId,
       gateway_order_id: razorpayOrderId
     }, { transaction: t });
@@ -352,6 +353,13 @@ const updateCartQuantity = async (req, res) => {
 
 // Mock payment without Razorpay - creates order and marks as paid immediately
 const processMockPayment = async (req, res) => {
+  if (process.env.NODE_ENV === 'production') {
+    return res.status(403).json({
+      success: false,
+      message: 'Mock payment is not available in production'
+    });
+  }
+
   const t = await sequelize.transaction();
   try {
     const { items, shippingAddress } = req.body;

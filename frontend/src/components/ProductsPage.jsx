@@ -25,7 +25,7 @@ const AddToCartButton = ({ product, getCartQuantity, addToCart, removeFromCart }
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (quantity > 1) addToCart(product.id, -1);
+            if (quantity > 1) addToCart(product, -1);
             else removeFromCart(product.id);
           }}
           className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
@@ -36,7 +36,7 @@ const AddToCartButton = ({ product, getCartQuantity, addToCart, removeFromCart }
         <button
           onClick={(e) => {
             e.stopPropagation();
-            addToCart(product.id, 1);
+            addToCart(product, 1);
           }}
           className="w-8 h-8 flex items-center justify-center bg-gray-200 rounded-lg hover:bg-gray-300 transition-colors"
         >
@@ -50,7 +50,7 @@ const AddToCartButton = ({ product, getCartQuantity, addToCart, removeFromCart }
     <button
       onClick={(e) => {
         e.stopPropagation();
-        addToCart(product.id, 1);
+        addToCart(product, 1);
         toast.success(`${product.name} added to cart!`, {
           position: "bottom-right",
           autoClose: 3000,
@@ -152,7 +152,7 @@ const ProductsPage = () => {
   };
 
   const handleAddToCart = (product) => {
-    addToCart(product.id, 1);
+    addToCart(product, 1);
     toast.success(`${product.name} added to cart!`, {
       position: "bottom-right",
       autoClose: 3000,

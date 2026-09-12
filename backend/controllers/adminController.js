@@ -90,9 +90,13 @@ const adminController = {
         {
           model: Payment,
           as: 'payment',
-          attributes: ['id', 'payment_method', 'payment_status', 'razorpay_payment_id']
+          attributes: ['id', 'method', 'status', 'gateway_payment_id', 'amount', 'created_at']
         }
       ];
+
+      console.log('🔍 ADMIN GET ORDERS');
+      console.log('Query:', req.query);
+      console.log('Where clause:', whereClause);
 
       const { count, rows: orders } = await Order.findAndCountAll({
         where: whereClause,
@@ -102,6 +106,9 @@ const adminController = {
         order: [[sortField, sortDir]],
         distinct: true
       });
+
+      console.log('📦 ADMIN ORDERS COUNT:', count);
+      console.log('📦 ADMIN ORDERS:', JSON.stringify(orders, null, 2));
 
       const totalPages = Math.ceil(count / limitNum);
 
@@ -149,13 +156,13 @@ const adminController = {
             include: [{
               model: Product,
               as: 'product',
-              attributes: ['id', 'name', 'image_url', 'description']
+              attributes: ['id', 'name', 'image_url']
             }]
           },
           {
             model: Payment,
             as: 'payment',
-            attributes: ['id', 'payment_method', 'payment_status', 'razorpay_order_id', 'razorpay_payment_id', 'razorpay_signature', 'amount', 'created_at']
+            attributes: ['id', 'method', 'status', 'gateway_order_id', 'gateway_payment_id', 'amount', 'created_at']
           }
         ]
       });
@@ -233,7 +240,8 @@ const adminController = {
         id,
         oldValue,
         { order_status: status, notes },
-        ipAddress
+        ipAddress,
+        req
       );
 
       // Fetch updated order with associations
@@ -256,7 +264,7 @@ const adminController = {
           {
             model: Payment,
             as: 'payment',
-            attributes: ['id', 'payment_method', 'payment_status', 'razorpay_payment_id']
+            attributes: ['id', 'method', 'status', 'gateway_payment_id']
           }
         ]
       });
@@ -472,7 +480,7 @@ const adminController = {
       });
 
       // Log login action
-      await logAdminAction(user.id, 'ADMIN_LOGIN', 'admin', user.id, null, { email: user.email }, req.ip);
+      await logAdminAction(user.id, 'ADMIN_LOGIN', 'admin', user.id, null, { email: user.email }, req.ip, req);
 
       res.json({
         success: true,
@@ -506,7 +514,7 @@ const adminController = {
       res.clearCookie('admin_refresh_token');
 
       if (req.adminId) {
-        await logAdminAction(req.adminId, 'ADMIN_LOGOUT', 'admin', req.adminId, null, null, req.ip);
+        await logAdminAction(req.adminId, 'ADMIN_LOGOUT', 'admin', req.adminId, null, null, req.ip, req);
       }
 
       res.json({

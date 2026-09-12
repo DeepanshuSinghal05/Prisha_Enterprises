@@ -4,29 +4,11 @@ import { motion } from 'framer-motion';
 import { FaShoppingCart, FaTrash, FaChevronLeft, FaPlus, FaMinus, FaCheck } from 'react-icons/fa';
 import { useCart } from '../contexts/CartContext';
 import { useAuth } from '../contexts/AuthContext';
-import { processPayment } from '../services/razorpay';
 import { toast } from 'react-toastify';
-
-// Helper to get product info by ID
-const getProductInfo = (productId) => {
-  const staticProducts = [
-    { id: 1, name: 'Prisha Smart LED TV - 32 inch', price: 7500 },
-    { id: 2, name: 'Prisha Smart LED TV - 32 inch Voice Remote 4K', price: 10500 },
-    { id: 3, name: 'Prisha Smart LED TV - 43 inch', price: 12500 },
-    { id: 4, name: 'Prisha Smart LED TV - 43 inch Voice Remote 4K', price: 15500 },
-    { id: 5, name: 'Prisha Smart LED TV - 50 inch Voice Remote 4K', price: 17500 },
-    { id: 6, name: 'Prisha Smart LED TV - 50 inch Voice Remote 8K', price: 21500 },
-    { id: 7, name: 'Prisha Smart LED TV - 55 inch 4K Ultra HD', price: 24500 },
-    { id: 8, name: 'Prisha Smart LED TV - 55 inch 8K Ultra HD', price: 28500 },
-    { id: 9, name: 'Prisha Smart LED TV - 65 inch 4K Ultra HD', price: 35500 },
-    { id: 10, name: 'Prisha Smart LED TV - 65 inch 8K Ultra HD', price: 42500 },
-  ];
-  return staticProducts.find(p => p.id === productId);
-};
 
 const CartPage = () => {
   const navigate = useNavigate();
-  const { items, removeFromCart, updateQuantity, cartTotal, totalItems, clearCart } = useCart();
+  const { items, removeFromCart, updateQuantity, cartTotal, totalItems } = useCart();
   const { isAuthenticated, user } = useAuth();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [cartProducts, setCartProducts] = useState({});
@@ -39,16 +21,9 @@ const CartPage = () => {
     is_default: true
   });
 
-  // Load product info for cart items
+  // Local product details are an estimate for display only; checkout uses DB prices.
   useEffect(() => {
-    const productsInfo = {};
-    for (const item of items) {
-      const product = getProductInfo(item.productId);
-      if (product) {
-        productsInfo[item.productId] = product;
-      }
-    }
-    setCartProducts(productsInfo);
+    setCartProducts(Object.fromEntries(items.map(item => [item.productId, item])));
   }, [items]);
 
   // Load saved address
@@ -92,7 +67,9 @@ const CartPage = () => {
       // Prepare items for payment
       const paymentItems = items.map(item => ({
         productId: item.productId,
-        quantity: item.quantity
+        quantity: item.quantity,
+        name: item.name,
+        price: item.price
       }));
 
       // Navigate to checkout page for address editing
@@ -107,14 +84,6 @@ const CartPage = () => {
       console.error(error);
       toast.error('Failed to process checkout. Please try again.');
       setIsCheckingOut(false);
-    }
-  };
-
-  const clearCartAfterPayment = () => {
-    // Clear cart after successful payment
-    const cartStorage = localStorage.getItem('prisha_cart');
-    if (cartStorage) {
-      localStorage.removeItem('prisha_cart');
     }
   };
 

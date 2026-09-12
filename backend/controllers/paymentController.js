@@ -77,7 +77,10 @@ const handlePaymentAuthorized = async (data) => {
 
   // Verify amount matches
   if (order && order.payment_status === 'pending' && Math.round(order.total_amount * 100) === payment.amount) {
-    await order.update({ payment_status: 'paid' });
+    await order.update({
+      payment_status: 'paid',
+      order_status: 'confirmed'
+    });
   }
 };
 
@@ -117,7 +120,10 @@ const handlePaymentCaptured = async (data) => {
       }
 
       if (order.payment_status !== 'paid') {
-        await order.update({ payment_status: 'paid' }, { transaction: t });
+        await order.update({
+          payment_status: 'paid',
+          order_status: 'confirmed'
+        }, { transaction: t });
       }
       await t.commit();
     } else {
@@ -160,6 +166,7 @@ const handleOrderPaid = async (data) => {
   if (dbOrder && dbOrder.payment_status === 'pending' && Math.round(dbOrder.total_amount * 100) === orderData.amount) {
     await dbOrder.update({
       payment_status: 'paid',
+      order_status: 'confirmed',
       payment_id: orderData.receipt
     });
   }

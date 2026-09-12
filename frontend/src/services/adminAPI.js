@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getCsrfToken, isMutatingMethod } from './csrf';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
@@ -12,15 +13,12 @@ const adminAxios = axios.create({
 });
 
 
-// Intercept requests to fetch CSRF token if missing for mutating requests
+// Use the same CSRF-token source as the fetch-based customer API client.
 adminAxios.interceptors.request.use(async (config) => {
-  if (['post', 'put', 'patch', 'delete'].includes(config.method)) {
-    if (!document.cookie || !document.cookie.includes('XSRF-TOKEN=')) {
-      try {
-        await axios.get(`${API_URL}/health`, { withCredentials: true });
-      } catch (e) {
-        console.warn('Failed to pre-fetch CSRF token', e);
-      }
+  if (isMutatingMethod(config.method)) {
+    const csrfToken = await getCsrfToken();
+    if (csrfToken) {
+      config.headers['X-XSRF-TOKEN'] = csrfToken;
     }
   }
   return config;
@@ -64,8 +62,18 @@ const adminAPI = {
    * Get orders with search, filter, pagination
    */
   getOrders: async (params = {}) => {
-    const query = new URLSearchParams(params).toString();
-    const response = await adminAxios.get(`/admin/orders?${query}`);
+    const cleanParams = Object.fromEntries(
+      Object.entries(params).filter(
+        ([_, value]) => value !== '' && value !== null && value !== undefined
+      )
+    );
+
+    const query = new URLSearchParams(cleanParams).toString();
+
+    const response = await adminAxios.get(
+      `/admin/orders${query ? `?${query}` : ''}`
+    );
+
     return response.data;
   },
 

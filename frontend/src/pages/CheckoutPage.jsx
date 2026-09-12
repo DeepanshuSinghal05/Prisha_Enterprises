@@ -14,24 +14,6 @@ const CheckoutPage = () => {
   const { clearCart } = useCart();
   const { user } = useAuth();
 
-  // Helper to get product price
-  const getProductPrice = (productId) => {
-    const staticProducts = [
-      { id: 1, price: 7500 },
-      { id: 2, price: 10500 },
-      { id: 3, price: 12500 },
-      { id: 4, price: 15500 },
-      { id: 5, price: 17500 },
-      { id: 6, price: 21500 },
-      { id: 7, price: 24500 },
-      { id: 8, price: 28500 },
-      { id: 9, price: 35500 },
-      { id: 10, price: 42500 },
-    ];
-    const product = staticProducts.find(p => p.id === productId);
-    return product?.price || 0;
-  };
-
   // Get items from navigation state
   const [paymentItems, setPaymentItems] = useState([]);
 
@@ -53,10 +35,11 @@ const CheckoutPage = () => {
     }
   }, [location.state]);
 
-  // Calculate cart total from payment items
-  const cartTotal = paymentItems.reduce((sum, item) => {
-    return sum + getProductPrice(item.productId) * item.quantity;
-  }, 0);
+  // Display estimate only; the checkout endpoint returns the authoritative DB total.
+  const cartTotal = paymentItems.reduce(
+    (sum, item) => sum + (Number(item.price) || 0) * item.quantity,
+    0
+  );
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null); // 'processing', 'success', 'failed'
   const [shippingAddress, setShippingAddress] = useState({
@@ -210,27 +193,11 @@ const CheckoutPage = () => {
   };
 
   const getProductName = (productId) => {
-    const staticProducts = [
-      { id: 1, name: 'Prisha Smart LED TV - 32 inch', price: 7500 },
-      { id: 2, name: 'Prisha Smart LED TV - 32 inch Voice Remote 4K', price: 10500 },
-      { id: 3, name: 'Prisha Smart LED TV - 43 inch', price: 12500 },
-      { id: 4, name: 'Prisha Smart LED TV - 43 inch Voice Remote 4K', price: 15500 },
-      { id: 5, name: 'Prisha Smart LED TV - 50 inch Voice Remote 4K', price: 17500 },
-      { id: 6, name: 'Prisha Smart LED TV - 50 inch Voice Remote 8K', price: 21500 },
-      { id: 7, name: 'Prisha Smart LED TV - 55 inch 4K Ultra HD', price: 24500 },
-      { id: 8, name: 'Prisha Smart LED TV - 55 inch 8K Ultra HD', price: 28500 },
-      { id: 9, name: 'Prisha Smart LED TV - 65 inch 4K Ultra HD', price: 35500 },
-      { id: 10, name: 'Prisha Smart LED TV - 65 inch 8K Ultra HD', price: 42500 },
-    ];
-    const product = staticProducts.find(p => p.id === productId);
-    const item = paymentItems.find(i => i.productId === productId);
-    return product ? `${product.name} (x${item?.quantity || 1})` : 'Product';
+    const item = paymentItems.find(cartItem => cartItem.productId === productId);
+    return item?.name ? `${item.name} (x${item.quantity || 1})` : 'Product';
   };
 
-  const cartItems = paymentItems.map(item => ({
-    ...item,
-    price: [7500, 10500, 12500, 15500, 17500, 21500, 24500, 28500, 35500, 42500][item.productId - 1]
-  }));
+  const cartItems = paymentItems;
 
   return (
     <div className="min-h-screen bg-gray-50 pt-32 pb-20">

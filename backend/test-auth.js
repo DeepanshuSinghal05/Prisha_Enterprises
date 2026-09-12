@@ -8,7 +8,7 @@ async function testAuth() {
   const adminEmail = 'admin@prishaenterprises.com';
   let admin = await User.findOne({ where: { email: adminEmail } });
   if (!admin) {
-    const hashedPassword = await bcrypt.hash('AdminPassword123!', 10);
+    const hashedPassword = await bcrypt.hash('Admin@123', 10);
     admin = await User.create({
       name: 'System Admin',
       email: adminEmail,

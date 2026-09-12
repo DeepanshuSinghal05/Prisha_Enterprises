@@ -11,7 +11,8 @@ router.post('/checkout/create-order', authenticate, requireAuth, validate(cartVa
 // POST /api/cart/checkout/verify-payment - Verify payment signature
 router.post('/checkout/verify-payment', authenticate, requireAuth, validate(cartValidators.payment), verifyPayment);
 
-// POST /api/cart/checkout/place-order - Place order with mock payment (no Razorpay needed)
+// POST /api/cart/checkout/place-order - development/test mock payment only
+// The controller rejects this endpoint in production, including direct handler use.
 router.post('/checkout/place-order', authenticate, requireAuth, validate(cartValidators.checkout), processMockPayment);
 
 module.exports = router;

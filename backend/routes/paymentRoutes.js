@@ -5,7 +5,7 @@ const { verifyWebhookSignature } = require('../utils/razorpay');
 const router = express.Router();
 
 // POST /api/payments/webhook - Razorpay webhook endpoint
-// Signature verification is done inside handleWebhook
+// CSRF-exempt because Razorpay is not a browser client; handleWebhook verifies its HMAC signature.
 router.post('/webhook', handleWebhook);
 
 module.exports = router;

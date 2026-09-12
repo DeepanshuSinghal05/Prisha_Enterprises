@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { FaBox, FaCheckCircle, FaShippingFast, FaTruck, FaBan, FaSearch, FaSignOutAlt, FaChartLine, FaMoneyBillWave} from 'react-icons/fa';
+import { FiTrendingUp, FiTrendingDown } from "react-icons/fi";
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import adminAPI from '../../services/adminAPI';
 import { toast } from 'react-toastify';
@@ -35,8 +36,8 @@ const AdminDashboard = () => {
     try {
       setLoading(true);
       const [statsRes, ordersRes] = await Promise.all([
-        adminAPI.getStats(token),
-        adminAPI.getOrders(token, filters)
+        adminAPI.getStats(),
+        adminAPI.getOrders(filters)
       ]);
 
       setStats(statsRes.data);
@@ -218,9 +219,9 @@ const AdminDashboard = () => {
                       </p>
                       <div className="flex items-center gap-2">
                         {stats.revenueGrowth >= 0 ? (
-                          <FaTrendingUp className="text-green-300" />
+                          <FiTrendingUp className="text-green-300" />
                         ) : (
-                          <FaTrendingDown className="text-red-300" />
+                          <FiTrendingDown className="text-red-300" />
                         )}
                         <span className="text-sm text-primary-100">vs last month</span>
                       </div>

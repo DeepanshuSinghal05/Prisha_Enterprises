@@ -140,9 +140,11 @@ const {
 
 app.use(setCsrfToken);
 
-// Razorpay webhook is server-to-server and should not require CSRF
 const csrfExcludeUrls = [
-  '/api/payments/webhook'
+  // Razorpay does not have a browser cookie; handleWebhook verifies its HMAC signature.
+  '/api/payments/webhook',
+  // Login happens before a session cookie exists; rate limiting and credential checks protect it.
+  '/api/admin/login'
 ];
 
 app.use((req, res, next) => {
@@ -277,6 +279,31 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 5000;
 
+const DEFAULT_ADMIN_EMAIL = 'admin@prishaenterprises.com';
+const DEFAULT_ADMIN_PASSWORD = 'Admin@123';
+
+/**
+ * Refuse production startup while the seeded default admin password is active.
+ */
+const checkDefaultAdminPassword = async () => {
+  const { User } = require('./models');
+  const bcrypt = require('bcryptjs');
+  const admin = await User.findOne({ where: { email: DEFAULT_ADMIN_EMAIL, role: 'admin' } });
+
+  if (!admin || !await bcrypt.compare(DEFAULT_ADMIN_PASSWORD, admin.password_hash)) {
+    return;
+  }
+
+  const message = 'Default admin password is still active for admin@prishaenterprises.com. ' +
+    'Change it before starting the production server.';
+
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error(message);
+  }
+
+  console.warn(`WARNING: ${message}`);
+};
+
 const startServer = async () => {
   try {
     console.log('Starting server...');
@@ -307,6 +334,12 @@ const startServer = async () => {
     console.log(
       'Database tables synchronized successfully.'
     );
+
+    // --------------------------------------------------------
+    // Check default admin password (production safeguard)
+    // --------------------------------------------------------
+
+    await checkDefaultAdminPassword();
 
     // --------------------------------------------------------
     // Start Express server

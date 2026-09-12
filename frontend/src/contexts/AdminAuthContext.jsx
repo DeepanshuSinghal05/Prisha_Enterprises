@@ -22,7 +22,7 @@ export const AdminAuthProvider = ({ children }) => {
       const savedToken = localStorage.getItem('prisha_admin_token');
       if (savedToken) {
         try {
-          const response = await adminAPI.getProfile(savedToken);
+          const response = await adminAPI.getProfile();
           setAdmin(response.data.admin);
           setToken(savedToken);
         } catch (error) {
@@ -60,7 +60,7 @@ export const AdminAuthProvider = ({ children }) => {
   const logout = async () => {
     try {
       if (token) {
-        await adminAPI.logout(token);
+        await adminAPI.logout();
       }
     } catch (error) {
       console.error('Logout error:', error);

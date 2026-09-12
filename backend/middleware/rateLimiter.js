@@ -75,10 +75,14 @@ const aiLimiter = rateLimit({
 const botBlocker = (req, res, next) => {
   const userAgent = req.headers['user-agent'] || '';
 
-  // List of known automated scraper/bot signatures
+  // Target malicious scraper and automation signatures only.
+  // Do not block general HTTP clients (e.g., axios, Java, Ruby, generic httpclient),
+  // because legitimate server-to-server integrations may use them.
   const botSignatures = [
-    'curl', 'python-requests', 'scrapy', 'postmanruntime',
-    'wget', 'urllib', 'httpclient', 'java', 'ruby', 'axios'
+    'scrapy', 'sqlmap', 'nikto', 'masscan', 'nmap',
+    'gobuster', 'dirbuster', 'ffuf', 'hydra', 'zgrab',
+    'python-requests', 'python-urllib', 'curl/', 'wget/',
+    'postmanruntime'
   ];
 
   const isBot = botSignatures.some(sig => userAgent.toLowerCase().includes(sig));
