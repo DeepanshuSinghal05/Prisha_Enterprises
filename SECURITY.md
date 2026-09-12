@@ -61,6 +61,8 @@ service-account.json
 - [ ] Generate cryptographically strong JWT secrets (32+ random bytes)
 - [ ] Replace all placeholder secrets in `.env.production`
 - [ ] Use live Razorpay keys (not test keys)
+- [ ] Change the default `admin@prishaenterprises.com` password (backend will refuse to start in `production` if it still uses `Admin@123`)
+- [ ] Ensure database schema is migrated using `npm run migrate`
 - [ ] Set `NODE_ENV=production`
 - [ ] Configure `FRONTEND_URL` for CORS
 - [ ] Enable HTTPS enforcement
@@ -128,6 +130,8 @@ Frontend                          Backend
 - CSRF token validation on state-changing requests
 - Access token expires in 15 minutes
 - Refresh token expires in 7 days
+- Two API clients share standard CSRF setup (read from cookie `XSRF-TOKEN` or fetch from `/health`)
+- Admin login and Razorpay webhooks are deliberately CSRF-exempt (verified via pre-session rate limits and HMAC signature, respectively)
 
 ## Incident Response
 
