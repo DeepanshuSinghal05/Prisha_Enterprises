@@ -10,7 +10,8 @@ import {
   FaPaperPlane,
   FaCheckCircle,
   FaExclamationCircle,
-  FaInstagram
+  FaInstagram,
+  FaWhatsapp
 } from 'react-icons/fa';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
@@ -20,17 +21,6 @@ const contactSchema = yup.object({
   name: yup.string()
     .required('Name is required')
     .min(2, 'Name must be at least 2 characters'),
-
-  email: yup.string()
-    .required('Email is required')
-    .email('Invalid email format'),
-
-  phone: yup.string()
-    .required('Phone number is required')
-    .matches(/^[0-9]{10,15}$/, 'Please enter a valid phone number'),
-
-  subject: yup.string()
-    .required('Subject is required'),
 
   message: yup.string()
     .required('Message is required')
@@ -50,32 +40,49 @@ const ContactPage = () => {
     resolver: yupResolver(contactSchema),
   });
 
+  // Business info from env
+  const whatsappNumber = import.meta.env.VITE_WHATSAPP_NUMBER || '91717718175';
+
   const onSubmit = async (data) => {
     setIsSubmitting(true);
 
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1500));
+    try {
+      // Format the message for WhatsApp
+      const text = `Hi ${data.name},
+I would like to enquire about:
+${data.message}`;
 
-    setIsSubmitting(false);
-    setSubmitStatus('success');
+      const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(text)}`;
 
-    toast.success(
-      'Message sent successfully! We will contact you soon.',
-      {
-        position: 'top-right',
-      }
-    );
+      // Simulate slight delay for UX
+      await new Promise((resolve) => setTimeout(resolve, 500));
 
-    reset();
+      // Open WhatsApp
+      window.open(whatsappUrl, '_blank');
 
-    // Reset status after 5 seconds
-    setTimeout(() => setSubmitStatus(null), 5000);
+      setIsSubmitting(false);
+      setSubmitStatus('success');
+
+      toast.success(
+        'Opening WhatsApp to send your message!',
+        {
+          position: 'top-right',
+        }
+      );
+
+      reset();
+
+      // Reset status after 5 seconds
+      setTimeout(() => setSubmitStatus(null), 5000);
+    } catch (error) {
+      setIsSubmitting(false);
+      toast.error('Failed to open WhatsApp. Please try again.');
+    }
   };
 
-  // Business info from env
   const businessEmail =
     import.meta.env.VITE_BUSINESS_EMAIL ||
-    'info@prishaenterprises.com';
+    'enterprisesprisha82@gmail.com';
 
   const businessPhone =
     import.meta.env.VITE_BUSINESS_PHONE ||
@@ -84,10 +91,6 @@ const ContactPage = () => {
   const businessAddress =
     import.meta.env.VITE_BUSINESS_ADDRESS ||
     '60, Mirzajaan, Sihani Gate, Bihari Nagar, Naya Ganj, Ghaziabad, Uttar Pradesh 201001';
-
-  const whatsappNumber =
-    import.meta.env.VITE_WHATSAPP_NUMBER ||
-    '91717718175';
 
   const instagramLink =
     import.meta.env.VITE_INSTAGRAM_LINK ||
@@ -120,18 +123,23 @@ const ContactPage = () => {
       <div className="container-custom py-16">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
 
-          {/* Contact Form */}
+          {/* Left Column - Contact Form */}
           <motion.div
             initial={{ opacity: 0, x: -30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
+            className="space-y-8"
           >
+            {/* Inquiry Form */}
             <div className="bg-white rounded-2xl shadow-xl p-8">
 
-              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">
                 Send Us a Message
               </h2>
+              <p className="text-gray-600 mb-8">
+                Fill out the form below and we'll get back to you via WhatsApp
+              </p>
 
               <form
                 onSubmit={handleSubmit(onSubmit)}
@@ -140,124 +148,49 @@ const ContactPage = () => {
 
                 {/* Name Field */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Full Name *
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    Your Name
                   </label>
 
                   <input
                     type="text"
                     {...register('name')}
-                    className={`w-full px-4 py-3 rounded-lg border ${
+                    className={`w-full px-5 py-4 rounded-xl border-2 ${
                       errors.name
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:ring-primary-500'
-                    } focus:outline-none focus:ring-2 transition-all`}
-                    placeholder="John Doe"
+                        ? 'border-red-400 focus:ring-red-400'
+                        : 'border-gray-200 focus:border-primary-500 focus:ring-primary-500'
+                    } focus:outline-none focus:ring-2 transition-all text-gray-900 bg-gray-50`}
+                    placeholder="Enter your name"
                   />
 
                   {errors.name && (
-                    <p className="mt-1 text-red-500 text-sm flex items-center">
-                      <FaExclamationCircle className="h-4 w-4 mr-1" />
+                    <p className="mt-2 text-red-500 text-sm flex items-center">
+                      <FaExclamationCircle className="h-4 w-4 mr-2" />
                       {errors.name.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Email Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Email Address *
-                  </label>
-
-                  <input
-                    type="email"
-                    {...register('email')}
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      errors.email
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:ring-primary-500'
-                    } focus:outline-none focus:ring-2 transition-all`}
-                    placeholder="john@example.com"
-                  />
-
-                  {errors.email && (
-                    <p className="mt-1 text-red-500 text-sm flex items-center">
-                      <FaExclamationCircle className="h-4 w-4 mr-1" />
-                      {errors.email.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Phone Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Phone Number *
-                  </label>
-
-                  <input
-                    type="tel"
-                    {...register('phone')}
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      errors.phone
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:ring-primary-500'
-                    } focus:outline-none focus:ring-2 transition-all`}
-                    placeholder="9876543210"
-                  />
-
-                  {errors.phone && (
-                    <p className="mt-1 text-red-500 text-sm flex items-center">
-                      <FaExclamationCircle className="h-4 w-4 mr-1" />
-                      {errors.phone.message}
-                    </p>
-                  )}
-                </div>
-
-                {/* Subject Field */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Subject *
-                  </label>
-
-                  <input
-                    type="text"
-                    {...register('subject')}
-                    className={`w-full px-4 py-3 rounded-lg border ${
-                      errors.subject
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:ring-primary-500'
-                    } focus:outline-none focus:ring-2 transition-all`}
-                    placeholder="Inquiry about LED TVs"
-                  />
-
-                  {errors.subject && (
-                    <p className="mt-1 text-red-500 text-sm flex items-center">
-                      <FaExclamationCircle className="h-4 w-4 mr-1" />
-                      {errors.subject.message}
                     </p>
                   )}
                 </div>
 
                 {/* Message Field */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Message *
+                  <label className="block text-sm font-semibold text-gray-800 mb-3">
+                    Your Message
                   </label>
 
                   <textarea
                     {...register('message')}
-                    rows={5}
-                    className={`w-full px-4 py-3 rounded-lg border ${
+                    rows={6}
+                    className={`w-full px-5 py-4 rounded-xl border-2 ${
                       errors.message
-                        ? 'border-red-500 focus:ring-red-500'
-                        : 'border-gray-300 focus:ring-primary-500'
-                    } focus:outline-none focus:ring-2 transition-all resize-none`}
-                    placeholder="How can we help you?"
+                        ? 'border-red-400 focus:ring-red-400'
+                        : 'border-gray-200 focus:border-primary-500 focus:ring-primary-500'
+                    } focus:outline-none focus:ring-2 transition-all resize-none text-gray-900 bg-gray-50`}
+                    placeholder="What would you like to know about our LED TVs?"
                   />
 
                   {errors.message && (
-                    <p className="mt-1 text-red-500 text-sm flex items-center">
-                      <FaExclamationCircle className="h-4 w-4 mr-1" />
+                    <p className="mt-2 text-red-500 text-sm flex items-center">
+                      <FaExclamationCircle className="h-4 w-4 mr-2" />
                       {errors.message.message}
                     </p>
                   )}
@@ -267,10 +200,10 @@ const ContactPage = () => {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className={`w-full py-4 px-6 rounded-lg font-semibold text-white transition-all duration-300 flex items-center justify-center space-x-2 ${
+                  className={`w-full py-4 px-6 rounded-xl font-semibold text-white transition-all duration-300 flex items-center justify-center space-x-3 ${
                     isSubmitting
                       ? 'bg-gray-400 cursor-not-allowed'
-                      : 'bg-primary-800 hover:bg-primary-700 hover:shadow-lg transform hover:scale-[1.02]'
+                      : 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700 hover:shadow-lg transform hover:scale-[1.02]'
                   }`}
                 >
                   {isSubmitting ? (
@@ -297,12 +230,12 @@ const ContactPage = () => {
                         />
                       </svg>
 
-                      <span>Sending...</span>
+                      <span>Opening WhatsApp...</span>
                     </>
                   ) : (
                     <>
-                      <span>Send Message</span>
-                      <FaPaperPlane className="h-4 w-4" />
+                      <FaWhatsapp className="h-5 w-5" />
+                      <span>Send via WhatsApp</span>
                     </>
                   )}
                 </button>
@@ -310,198 +243,197 @@ const ContactPage = () => {
                 {/* Success Message */}
                 {submitStatus === 'success' && (
                   <motion.div
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    className="p-4 bg-green-50 border border-green-200 rounded-lg flex items-center text-green-800"
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="p-4 bg-green-50 border border-green-200 rounded-xl flex items-center text-green-800"
                   >
-                    <FaCheckCircle className="h-5 w-5 mr-2" />
+                    <FaCheckCircle className="h-5 w-5 mr-3 flex-shrink-0" />
 
                     <span className="text-sm font-medium">
-                      Message sent successfully! We'll contact you soon.
+                      Opening WhatsApp! Complete your message there.
                     </span>
                   </motion.div>
                 )}
 
               </form>
             </div>
+
+            {/* Business Hours */}
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Business Hours
+              </h2>
+
+              <div className="space-y-3">
+                {[
+                  {
+                    day: 'Monday - Friday',
+                    time: '9:00 AM - 8:00 PM'
+                  },
+                  {
+                    day: 'Saturday',
+                    time: '10:00 AM - 7:00 PM'
+                  },
+                  {
+                    day: 'Sunday',
+                    time: '11:00 AM - 6:00 PM'
+                  },
+                ].map((item, index) => (
+                  <div
+                    key={index}
+                    className="flex justify-between py-3 border-b border-gray-100 last:border-0"
+                  >
+                    <span className="font-medium text-gray-700">
+                      {item.day}
+                    </span>
+
+                    <span className="text-gray-600">
+                      {item.time}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
           </motion.div>
 
-          {/* Contact Info */}
+          {/* Right Column - Contact Info & Map */}
           <motion.div
             initial={{ opacity: 0, x: 30 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
+            className="space-y-8"
           >
-            <div className="space-y-8">
 
-              {/* Business Info */}
-              <div className="bg-white rounded-2xl shadow-xl p-8">
+            {/* Contact Information */}
+            <div className="bg-white rounded-2xl shadow-xl p-8">
 
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Contact Information
-                </h2>
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Contact Information
+              </h2>
 
-                <div className="space-y-6">
+              <div className="space-y-6">
 
-                  {/* Location */}
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <FaMapMarkerAlt className="h-6 w-6 text-primary-600" />
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Our Location
-                      </h3>
-
-                      <p className="text-gray-600 mt-1">
-                        {businessAddress}
-                      </p>
-                    </div>
+                {/* Location */}
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <FaMapMarkerAlt className="h-6 w-6 text-primary-600" />
                   </div>
 
-                  {/* Phone */}
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <FaPhone className="h-6 w-6 text-green-600" />
-                    </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      Our Location
+                    </h3>
 
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Phone
-                      </h3>
-
-                      <a
-                        href={`tel:${businessPhone.replace(/\s/g, '')}`}
-                        className="text-primary-600 mt-1 block hover:underline"
-                      >
-                        {businessPhone}
-                      </a>
-                    </div>
+                    <p className="text-gray-600 mt-1">
+                      {businessAddress}
+                    </p>
                   </div>
-
-                  {/* Email */}
-                  <div className="flex items-start space-x-4">
-                    <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                      <FaEnvelope className="h-6 w-6 text-purple-600" />
-                    </div>
-
-                    <div>
-                      <h3 className="font-semibold text-gray-900">
-                        Email
-                      </h3>
-
-                      <a
-                        href={`mailto:${businessEmail}`}
-                        className="text-primary-600 mt-1 block hover:underline"
-                      >
-                        {businessEmail}
-                      </a>
-                    </div>
-                  </div>
-
                 </div>
-              </div>
 
-              {/* Social Links */}
-              <div className="bg-white rounded-2xl shadow-xl p-8">
+                {/* Phone */}
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <FaPhone className="h-6 w-6 text-green-600" />
+                  </div>
 
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Follow Us
-                </h2>
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      Phone
+                    </h3>
 
-                <div className="space-y-4">
-
-                  <a
-                    href={instagramLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-4 p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl text-white hover:shadow-lg transition-all transform hover:-translate-y-1"
-                  >
-                    <FaInstagram className="h-6 w-6" />
-
-                    <span className="font-semibold">
-                      @prishaenterprisess
-                    </span>
-                  </a>
-
-                  <a
-                    href={`https://wa.me/${whatsappNumber}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center space-x-4 p-4 bg-green-500 rounded-xl text-white hover:shadow-lg transition-all transform hover:-translate-y-1"
-                  >
-                    <FaPhone className="h-6 w-6" />
-
-                    <span className="font-semibold">
-                      Chat on WhatsApp
-                    </span>
-                  </a>
-
-                </div>
-              </div>
-
-              {/* Business Hours */}
-              <div className="bg-white rounded-2xl shadow-xl p-8">
-
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Business Hours
-                </h2>
-
-                <div className="space-y-3">
-                  {[
-                    {
-                      day: 'Monday - Friday',
-                      time: '9:00 AM - 8:00 PM'
-                    },
-                    {
-                      day: 'Saturday',
-                      time: '10:00 AM - 7:00 PM'
-                    },
-                    {
-                      day: 'Sunday',
-                      time: '11:00 AM - 6:00 PM'
-                    },
-                  ].map((item, index) => (
-                    <div
-                      key={index}
-                      className="flex justify-between py-3 border-b border-gray-100 last:border-0"
+                    <a
+                      href={`tel:${businessPhone.replace(/\s/g, '')}`}
+                      className="text-primary-600 mt-1 block hover:underline"
                     >
-                      <span className="font-medium text-gray-700">
-                        {item.day}
-                      </span>
-
-                      <span className="text-gray-600">
-                        {item.time}
-                      </span>
-                    </div>
-                  ))}
+                      {businessPhone}
+                    </a>
+                  </div>
                 </div>
+
+                {/* Email */}
+                <div className="flex items-start space-x-4">
+                  <div className="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <FaEnvelope className="h-6 w-6 text-purple-600" />
+                  </div>
+
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      Email
+                    </h3>
+
+                    <a
+                      href={`mailto:${businessEmail}`}
+                      className="text-primary-600 mt-1 block hover:underline"
+                    >
+                      {businessEmail}
+                    </a>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            {/* Social Links */}
+            <div className="bg-white rounded-2xl shadow-xl p-8">
+
+              <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                Connect With Us
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+                <a
+                  href={instagramLink}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-3 p-4 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl text-white hover:shadow-lg transition-all transform hover:-translate-y-1"
+                >
+                  <FaInstagram className="h-6 w-6" />
+
+                  <span className="font-semibold">
+                    Instagram
+                  </span>
+                </a>
+
+                <a
+                  href={`https://wa.me/${whatsappNumber}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center space-x-3 p-4 bg-green-500 rounded-xl text-white hover:shadow-lg transition-all transform hover:-translate-y-1"
+                >
+                  <FaWhatsapp className="h-6 w-6" />
+
+                  <span className="font-semibold">
+                    WhatsApp
+                  </span>
+                </a>
+
+              </div>
+            </div>
+
+            {/* Google Maps */}
+            <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
+
+              <div className="p-6 border-b border-gray-100">
+                <h3 className="text-xl font-bold text-gray-900">
+                  Visit Our Store
+                </h3>
               </div>
 
-              {/* Google Maps */}
-              <div className="bg-white rounded-2xl shadow-xl overflow-hidden">
-
-                <div className="p-4 border-b border-gray-100">
-                  <h3 className="font-semibold text-gray-900">
-                    Visit Our Store
-                  </h3>
-                </div>
-
-                <div className="aspect-video bg-gray-200">
-                  <iframe
-                    title="Prisha Enterprises Location"
-                    src="https://www.google.com/maps?q=60%2C%20Mirzajaan%2C%20Sihani%20Gate%2C%20Bihari%20Nagar%2C%20Naya%20Ganj%2C%20Ghaziabad%2C%20Uttar%20Pradesh%20201001&output=embed"
-                    className="w-full h-full border-0"
-                    loading="lazy"
-                    referrerPolicy="no-referrer-when-downgrade"
-                  />
-                </div>
-
+              <div className="aspect-video bg-gray-200">
+                <iframe
+                  title="Prisha Enterprises Location"
+                  src="https://www.google.com/maps?q=60%2C%20Mirzajaan%2C%20Sihani%20Gate%2C%20Bihari%20Nagar%2C%20Naya%20Ganj%2C%20Ghaziabad%2C%20Uttar%20Pradesh%20201001&output=embed"
+                  className="w-full h-full border-0"
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                />
               </div>
 
             </div>
+
           </motion.div>
 
         </div>
