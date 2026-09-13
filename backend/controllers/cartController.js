@@ -1,6 +1,7 @@
-const { Product, Order, OrderItem, Payment, Address, User, sequelize } = require('../models');
+const { Product, Order, OrderItem, Payment, Address, User, PendingCheckout, sequelize } = require('../models');
 const { logError } = require('../utils/logger');
 const { createRazorpayOrder, verifyPaymentSignature } = require('../utils/razorpay');
+const { processSuccessfulPayment } = require('../utils/paymentUtils');
 
 // Mock Razorpay order creation (for testing without Razorpay API)
 const createMockRazorpayOrder = async (amount, currency = 'INR') => {
@@ -20,16 +21,15 @@ const createMockRazorpayOrder = async (amount, currency = 'INR') => {
 };
 
 // Mock payment verification (for testing without Razorpay API)
-const verifyMockPayment = (orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
+const verifyMockPayment = (razorpayOrderId, razorpayPaymentId, razorpaySignature) => {
   // In real implementation, this would verify Razorpay signature
   // For testing, we always return true if parameters are present
-  return !!orderId && !!razorpayOrderId && !!razorpayPaymentId && !!razorpaySignature;
+  return !!razorpayOrderId && !!razorpayPaymentId && !!razorpaySignature;
 };
 
 const createCheckoutOrder = async (req, res) => {
-  const t = await sequelize.transaction();
   try {
-    const { items, shippingAddress } = req.body;
+    const { items, shippingAddress, addressId } = req.body;
     const userId = req.user ? req.user.id : null;
 
     if (!items || items.length === 0) {
@@ -39,32 +39,40 @@ const createCheckoutOrder = async (req, res) => {
       });
     }
 
-    // Fetch products and validate
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required to place an order'
+      });
+    }
+
+    // LAYER 1: Validate stock BEFORE any payment or order creation
     const productIds = items.map(item => item.productId);
-    const products = await Product.findAll({
-      where: { id: productIds },
-      transaction: t,
-      lock: true
-    });
+    const products = await Product.findAll({ where: { id: productIds } });
 
     if (products.length !== items.length) {
-      await t.rollback();
       return res.status(400).json({
         success: false,
         message: 'Some products are not available'
       });
     }
 
-    // Validate stock and calculate totals
     let calculatedTotal = 0;
     const itemsWithDetails = items.map(item => {
       const product = products.find(p => p.id === item.productId);
       if (!product) {
-        throw new Error(`Product ${item.productId} not found`);
+        return res.status(400).json({
+          success: false,
+          message: `Product ${item.productId} not found`
+        });
       }
 
+      // LAYER 1: Check stock availability BEFORE payment
       if (product.stock_quantity < item.quantity) {
-        throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock_quantity}`);
+        return res.status(400).json({
+          success: false,
+          message: `Insufficient stock for ${product.name}. Available: ${product.stock_quantity}`
+        });
       }
 
       // Calculate line total
@@ -81,72 +89,111 @@ const createCheckoutOrder = async (req, res) => {
 
     // Validate minimum amount (Razorpay requires minimum 100 paise / 1 INR)
     if (calculatedTotal < 1) {
-      await t.rollback();
       return res.status(400).json({
         success: false,
         message: 'Order amount must be at least ₹1'
       });
     }
 
-    // Create order
-    const order = await Order.create({
-      user_id: userId,
-      total_amount: calculatedTotal,
-      payment_status: 'pending',
-      order_status: 'placed'
-    }, { transaction: t });
-
-    // Create order items
-    for (const item of itemsWithDetails) {
-      await OrderItem.create({
-        order_id: order.id,
-        product_id: item.productId,
-        quantity: item.quantity,
-        price_at_purchase: item.priceAtPurchase
-      }, { transaction: t });
-
-      // Decrement stock
-      await Product.decrement('stock_quantity', {
-        by: item.quantity,
-        where: { id: item.productId },
-        transaction: t
+    // Create Razorpay order first, before making database changes.
+    let razorpayOrder;
+    try {
+      razorpayOrder = await createRazorpayOrder(Math.round(calculatedTotal));
+    } catch (razorpayErr) {
+      logError(razorpayErr, req);
+      return res.status(503).json({
+        success: false,
+        message: 'Payment service temporarily unavailable. Please try again.'
       });
     }
 
-    // Save shipping address to database
+    // Handle shipping address dedup with transaction guard
     let savedAddress = null;
-    if (shippingAddress) {
-      // Check if address exists for user
-      const existingAddress = await Address.findOne({
-        where: {
-          user_id: userId,
-          address_line1: shippingAddress.address_line1,
-          city: shippingAddress.city,
-          state: shippingAddress.state
+
+    if (addressId) {
+      savedAddress = await Address.findOne({
+        where: { id: addressId, user_id: userId }
+      });
+      if (!savedAddress) {
+        return res.status(400).json({ success: false, message: 'Selected address not found' });
+      }
+    } else if (shippingAddress) {
+      const normalize = (str) => typeof str === 'string' ? str.trim().toLowerCase() : '';
+
+      const normNew = {
+        line1: normalize(shippingAddress.address_line1),
+        line2: normalize(shippingAddress.address_line2 || ''),
+        city: normalize(shippingAddress.city),
+        state: normalize(shippingAddress.state),
+        pincode: normalize(shippingAddress.pincode),
+        phone: normalize(shippingAddress.phone)
+      };
+
+      await sequelize.transaction(async (t) => {
+        // Lock the parent user row so concurrent checkouts for this customer
+        // cannot both decide to create the same address.
+        await User.findByPk(userId, { transaction: t, lock: t.LOCK.UPDATE });
+
+        const userAddresses = await Address.findAll({
+          where: { user_id: userId },
+          transaction: t
+        });
+
+        const existingAddress = userAddresses.find(addr => {
+          return normalize(addr.address_line1) === normNew.line1 &&
+                 normalize(addr.address_line2 || '') === normNew.line2 &&
+                 normalize(addr.city) === normNew.city &&
+                 normalize(addr.state) === normNew.state &&
+                 normalize(addr.pincode) === normNew.pincode &&
+                 normalize(addr.phone) === normNew.phone;
+        });
+
+        if (!existingAddress) {
+          const isDefault = userAddresses.length === 0 || shippingAddress.is_default === true;
+
+          if (isDefault) {
+            await Address.update(
+              { is_default: false },
+              { where: { user_id: userId }, transaction: t }
+            );
+          }
+
+          savedAddress = await Address.create({
+            user_id: userId,
+            address_line1: shippingAddress.address_line1,
+            address_line2: shippingAddress.address_line2 || null,
+            city: shippingAddress.city,
+            state: shippingAddress.state,
+            pincode: shippingAddress.pincode,
+            phone: shippingAddress.phone,
+            is_default: isDefault
+          }, { transaction: t });
+        } else {
+          savedAddress = existingAddress;
         }
       });
-
-      if (!existingAddress) {
-        savedAddress = await Address.create({
-          user_id: userId,
-          address_line1: shippingAddress.address_line1,
-          address_line2: shippingAddress.address_line2 || null,
-          city: shippingAddress.city,
-          state: shippingAddress.state,
-          pincode: shippingAddress.pincode,
-          phone: shippingAddress.phone,
-          is_default: shippingAddress.is_default !== undefined ? shippingAddress.is_default : true
-        }, { transaction: t });
-      } else {
-        savedAddress = existingAddress;
-      }
+    } else {
+      return res.status(400).json({ success: false, message: 'Shipping address is required' });
     }
 
-    await t.commit();
-
-    // Create Razorpay order using real Razorpay API
-    // Ensure amount is integer (paise)
-    const razorpayOrder = await createRazorpayOrder(Math.round(calculatedTotal));
+    // Create PendingCheckout after the Razorpay order (to store checkout data for later)
+    try {
+      await PendingCheckout.create({
+        gateway_order_id: razorpayOrder.id,
+        user_id: userId,
+        items: JSON.stringify(itemsWithDetails),
+        shipping_address: savedAddress ? JSON.stringify(savedAddress) : null,
+        amount: calculatedTotal
+      });
+    } catch (pendingErr) {
+      // If PendingCheckout fails, void the Razorpay order
+      logError(pendingErr, req);
+      // Note: In production, you would call razorpayOrder.fetch().then(o => o.cancel()) to void
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to initialize checkout. Please try again.'
+      });
+    }
 
     // Get user for prefill data
     let userData = null;
@@ -154,12 +201,10 @@ const createCheckoutOrder = async (req, res) => {
       userData = await User.findByPk(userId);
     }
 
-
     res.json({
       success: true,
-      message: 'Order created successfully',
-      order: {
-        id: order.id,
+      message: 'Checkout initialized',
+      checkout: {
         razorpay_order_id: razorpayOrder.id,
         amount: calculatedTotal * 100, // Convert to paise for frontend
         currency: 'INR',
@@ -177,7 +222,7 @@ const createCheckoutOrder = async (req, res) => {
           pincode: savedAddress.pincode,
           phone: savedAddress.phone,
           is_default: savedAddress.is_default
-        } : shippingAddress,
+        } : null,
         razorpay_key_id: process.env.RAZORPAY_KEY_ID
       },
       user: userData ? {
@@ -187,12 +232,9 @@ const createCheckoutOrder = async (req, res) => {
       } : null
     });
   } catch (error) {
-    if (!t.finished) {
-      await t.rollback();
-    }
     logError(error, req);
 
-    if (error.message.includes('Insufficient stock')) {
+    if (error.message && error.message.includes('Insufficient stock')) {
       return res.status(400).json({
         success: false,
         message: error.message
@@ -201,87 +243,88 @@ const createCheckoutOrder = async (req, res) => {
 
     res.status(500).json({
       success: false,
-      message: 'Failed to create order. Please try again. Detailed error: ' + error.message
+      message: 'Failed to initialize checkout. Please try again.'
     });
   }
 };
 
 const verifyPayment = async (req, res) => {
-  const t = await sequelize.transaction();
   try {
-    const { orderId, razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
+    const { razorpayOrderId, razorpayPaymentId, razorpaySignature } = req.body;
     const userId = req.user ? req.user.id : null;
 
-    // Verify order belongs to user FIRST to prevent IDOR and enumeration
-    const order = await Order.findByPk(orderId, { transaction: t });
-    if (!order || order.user_id !== userId) {
-      await t.rollback();
-      return res.status(400).json({
+    if (!userId) {
+      return res.status(401).json({
         success: false,
-        message: 'Payment verification failed'
+        message: 'Authentication required'
       });
     }
 
-    // THEN Verify payment signature using Razorpay
+    if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing payment verification details'
+      });
+    }
+
+    // Verify payment signature using Razorpay
     const isSignatureValid = verifyPaymentSignature(razorpayOrderId, razorpayPaymentId, razorpaySignature);
 
     if (!isSignatureValid) {
-      await t.rollback();
       return res.status(400).json({
         success: false,
-        message: 'Payment verification failed'
+        message: 'Payment verification failed - invalid signature'
       });
     }
 
-    // Check if payment already processed (idempotency)
-    const existingPayment = await Payment.findOne({
-      where: { gateway_payment_id: razorpayPaymentId },
-      transaction: t
+    // Process successful payment (idempotent)
+    const result = await processSuccessfulPayment({
+      gatewayOrderId: razorpayOrderId,
+      gatewayPaymentId: razorpayPaymentId,
+      razorpayCapturedAmount: null, // Will read from PendingCheckout
+      method: 'razorpay',
+      rawResponse: {},
+      userId
     });
 
-    if (existingPayment) {
-      await t.rollback();
-      return res.status(409).json({
-        success: false,
-        message: 'Payment already processed'
+    if (result.alreadyProcessed) {
+      return res.json({
+        success: true,
+        message: 'Payment already processed',
+        order: {
+          id: result.order.id,
+          total_amount: result.order.total_amount,
+          payment_status: result.order.payment_status,
+          order_status: result.order.order_status
+        }
       });
     }
 
-    // Update order status to paid and confirmed
-    await order.update({
-      payment_status: 'paid',
-      order_status: 'confirmed',
-      payment_id: razorpayPaymentId,
-      gateway_order_id: razorpayOrderId
-    }, { transaction: t });
-
-    // Create payment record
-    const payment = await Payment.create({
-      order_id: orderId,
-      gateway_payment_id: razorpayPaymentId,
-      gateway_order_id: razorpayOrderId,
-      amount: order.total_amount,
-      status: 'captured',
-      method: 'razorpay'
-    }, { transaction: t });
-
-    await t.commit();
+    if (result.stockUnavailable) {
+      return res.json({
+        success: true,
+        message: 'Order placed, but some items are unavailable. We will contact you soon.',
+        order: {
+          id: result.order.id,
+          total_amount: result.order.total_amount,
+          payment_status: result.order.payment_status,
+          order_status: result.order.order_status,
+          stock_unavailable: true
+        }
+      });
+    }
 
     res.json({
       success: true,
       message: 'Payment verified successfully',
       order: {
-        id: order.id,
-        total_amount: order.total_amount,
-        payment_status: order.payment_status,
-        order_status: order.order_status,
-        payment_id: razorpayPaymentId
+        id: result.order.id,
+        total_amount: result.order.total_amount,
+        payment_status: result.order.payment_status,
+        order_status: result.order.order_status
       }
     });
   } catch (error) {
-    if (!t.finished) {
-      await t.rollback();
-    }
     logError(error, req);
 
     res.status(500).json({

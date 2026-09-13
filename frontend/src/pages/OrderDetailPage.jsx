@@ -5,12 +5,12 @@ import { FaArrowLeft, FaCheckCircle, FaBox, FaShippingFast, FaTruck, FaBan, FaSh
 import { orderAPI } from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
 
-const getStatusSteps = (currentStatus) => {
+const getStatusSteps = (currentStatus, order) => {
   const steps = [
-    { key: 'placed', label: 'Placed', icon: FaBox },
+    { key: 'placed', label: 'Placed', icon: FaBox, timestamp: order?.created_at },
     { key: 'confirmed', label: 'Confirmed', icon: FaCheckCircle },
-    { key: 'shipped', label: 'Shipped', icon: FaShippingFast },
-    { key: 'delivered', label: 'Delivered', icon: FaTruck }
+    { key: 'shipped', label: 'Shipped', icon: FaShippingFast, timestamp: order?.shipped_at },
+    { key: 'delivered', label: 'Delivered', icon: FaTruck, timestamp: order?.delivered_at }
   ];
 
   const statusOrder = ['placed', 'confirmed', 'shipped', 'delivered', 'cancelled'];
@@ -158,11 +158,11 @@ const OrderDetailPage = () => {
                        <div className="absolute top-6 left-10 h-0.5 bg-primary-600 transition-all duration-500"
                             style={{
                               zIndex: 0,
-                              width: `${(getStatusSteps(order.order_status).findIndex(s => s.active) / (getStatusSteps(order.order_status).length - 1)) * 100}%`
+                              width: `${(getStatusSteps(order.order_status, order).findIndex(s => s.active) / (getStatusSteps(order.order_status, order).length - 1)) * 100}%`
                             }}
                        />
 
-                       {getStatusSteps(order.order_status).map((step) => {
+                       {getStatusSteps(order.order_status, order).map((step) => {
                          const Icon = step.icon;
                          return (
                            <div key={step.key} className="relative z-10 flex flex-col items-center">
@@ -180,6 +180,13 @@ const OrderDetailPage = () => {
                              }`}>
                                {step.label}
                              </span>
+                             {step.timestamp && (step.completed || step.active) && (
+                               <span className="text-[10px] text-gray-500 mt-0.5 text-center">
+                                 {new Date(step.timestamp).toLocaleDateString('en-IN', {
+                                   day: 'numeric', month: 'short'
+                                 })}
+                               </span>
+                             )}
                            </div>
                          );
                        })}

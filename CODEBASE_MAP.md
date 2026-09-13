@@ -19,7 +19,7 @@
 
 ## 2. Directory Structure (annotated)
 
-```
+```text
 backend/
 ├── server.js              ← Express app, middleware stack, startup
 ├── config/config.js       ← Multi-env MySQL config (dev/test/prod with SSL+pool)
@@ -92,12 +92,12 @@ frontend/
 ## 3. Core Execution Flows
 
 ### Customer Purchase Flow
-```
+```text
 HomePage → ProductsPage → ProductDetailPage → addToCart (CartContext/localStorage)
   → CartPage → CheckoutPage (requires auth)
   → cartAPI.createCheckoutOrder → POST /api/cart/checkout/create-order
-    → cartController creates Order+OrderItems in transaction, calls razorpay.createRazorpayOrder
-    → Returns { order: { id, razorpay_order_id, amount } }
+    → cartController checks stock, calls razorpay.createRazorpayOrder, stores cart in PendingCheckout
+    → Returns { checkout: { razorpay_order_id, amount, items } }
   → razorpay.js initializePayment → Razorpay Checkout widget opens
   → User pays → handler callback → cartAPI.verifyPayment → POST /api/cart/checkout/verify-payment
     → cartController verifies HMAC signature, updates Order payment_status='paid', creates Payment record
@@ -106,7 +106,7 @@ HomePage → ProductsPage → ProductDetailPage → addToCart (CartContext/local
 ```
 
 ### Auth Flow
-```
+```text
 AuthPage (login/signup via react-hook-form+yup) → AuthContext.login → POST /api/auth/login
   → authController validates, bcrypt.compare, sets httpOnly cookies (accessToken + refreshToken)
   → Frontend stores "cookie_auth" indicator in localStorage (NOT the actual token)
@@ -115,7 +115,7 @@ AuthPage (login/signup via react-hook-form+yup) → AuthContext.login → POST /
 ```
 
 ### Admin Flow
-```
+```text
 AdminLoginPage → AdminAuthContext.login → adminAPI.login → POST /api/admin/login (CSRF-exempt)
   → adminController validates, sets admin_token httpOnly cookie
   → AdminDashboard: getStats (order/revenue aggregates), getOrders (search/filter/paginate)
@@ -141,7 +141,7 @@ AdminLoginPage → AdminAuthContext.login → adminAPI.login → POST /api/admin
 - `frontend/services/api.js` and `adminAPI.js` both import and use the shared CSRF utility
 
 ### Model Associations (all in `backend/models/index.js:41-67`)
-```
+```text
 User ──hasMany──→ Order ──hasMany──→ OrderItem ──belongsTo──→ Product
   │                  └──hasMany──→ Payment
   ├──hasMany──→ Address
@@ -164,7 +164,7 @@ User ──hasMany──→ Order ──hasMany──→ OrderItem ──belongs
 
 ## 5. Security Middleware Stack (order matters — `backend/server.js`)
 
-```
+```text
 1. HTTPS redirect (production only)              server.js:36
 2. blocklistMiddleware (in-memory IP blocklist)   securityMonitor.js:12
 3. securityMonitor (tracks 401/403/404/429)       securityMonitor.js:24
@@ -203,9 +203,10 @@ Production DB uses SSL (`dialectOptions.ssl.rejectUnauthorized: false`) and conn
 |-------|-------|------------|-------|
 | User | users | email(unique), role ENUM(customer\|admin) | No timestamps flag, underscored |
 | Product | products | price DECIMAL(10,2), smart_features JSON, stock_quantity(default 50) | TV-specific fields |
-| Order | orders | payment_status ENUM(pending\|paid\|failed\|refunded), order_status ENUM(placed\|confirmed\|shipped\|delivered\|cancelled) | Two separate status fields |
+| Order | orders | payment_status ENUM(pending\|paid\|failed\|refunded), order_status ENUM(placed\|confirmed\|shipped\|delivered\|cancelled\|stock_unavailable), stock_failures JSON | Two separate status fields; stock_unavailable for manual admin review |
 | OrderItem | order_items | price_at_purchase DECIMAL(10,2) | Snapshot price at purchase time |
 | Payment | payments | gateway_payment_id(unique), raw_response JSON | Full Razorpay response stored |
+| PendingCheckout | pending_checkouts | gateway_order_id(UNIQUE), user_id, items (JSON), amount DECIMAL | Stores cart data BEFORE payment; converted to Order AFTER payment |
 | Address | addresses | pincode(6-digit regex), is_default boolean | Per-user addresses |
 | AdminActionLog | admin_action_logs | action_type, target_type, old_value/new_value TEXT | Audit trail |
 

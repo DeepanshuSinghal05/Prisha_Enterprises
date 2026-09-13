@@ -45,6 +45,9 @@ const getMyOrders = async (req, res) => {
         payment_status: o.payment_status,
         order_status: o.order_status,
         created_at: o.created_at,
+        shipped_at: o.shipped_at,
+        delivered_at: o.delivered_at,
+        shipping_address: o.shipping_address,
         items: o.items.map(oi => ({
           id: oi.id,
           product_id: oi.product_id,
@@ -119,6 +122,9 @@ const getOrderById = async (req, res) => {
         payment_id: order.payment_id,
         gateway_order_id: order.gateway_order_id,
         created_at: order.created_at,
+        shipped_at: order.shipped_at,
+        delivered_at: order.delivered_at,
+        shipping_address: order.shipping_address,
         items: order.items.map(oi => ({
           id: oi.id,
           product_id: oi.product_id,

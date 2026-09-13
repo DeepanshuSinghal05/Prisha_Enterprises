@@ -165,6 +165,16 @@ const AdminOrderDetailPage = () => {
                 <p className="text-sm text-gray-500">
                   Placed on {formatDate(order.created_at)}
                 </p>
+                {order.shipped_at && (
+                  <p className="text-sm text-gray-500">
+                    Shipped on {formatDate(order.shipped_at)}
+                  </p>
+                )}
+                {order.delivered_at && (
+                  <p className="text-sm text-gray-500">
+                    Delivered on {formatDate(order.delivered_at)}
+                  </p>
+                )}
               </div>
               <div className="mt-4 md:mt-0">
                 {getStatusBadge(order.order_status)}
@@ -239,7 +249,7 @@ const AdminOrderDetailPage = () => {
                       </div>
                       <div className="text-right">
                         <p className="font-semibold text-gray-900">
-                          ₹ ₹
+                          ₹
                           {(
                             parseFloat(item.price_at_purchase) * item.quantity
                           ).toLocaleString("en-IN")}

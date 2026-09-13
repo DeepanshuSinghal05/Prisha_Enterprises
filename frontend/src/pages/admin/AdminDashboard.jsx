@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { FaBox, FaCheckCircle, FaShippingFast, FaTruck, FaBan, FaSearch, FaSignOutAlt, FaChartLine, FaMoneyBillWave} from 'react-icons/fa';
+import { FaBox, FaCheckCircle, FaShippingFast, FaTruck, FaBan, FaSearch, FaSignOutAlt, FaChartLine, FaMoneyBillWave, FaExclamationTriangle} from 'react-icons/fa';
 import { FiTrendingUp, FiTrendingDown } from "react-icons/fi";
 import { useAdminAuth } from '../../contexts/AdminAuthContext';
 import adminAPI from '../../services/adminAPI';
@@ -78,14 +78,15 @@ const AdminDashboard = () => {
       confirmed: { color: 'bg-yellow-100 text-yellow-800', icon: FaCheckCircle },
       shipped: { color: 'bg-purple-100 text-purple-800', icon: FaShippingFast },
       delivered: { color: 'bg-green-100 text-green-800', icon: FaTruck },
-      cancelled: { color: 'bg-red-100 text-red-800', icon: FaBan }
+      cancelled: { color: 'bg-red-100 text-red-800', icon: FaBan },
+      stock_unavailable: { color: 'bg-orange-100 text-orange-800', icon: FaBox }
     };
     const badge = badges[status] || badges.placed;
     const Icon = badge.icon;
     return (
       <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${badge.color}`}>
         <Icon className="mr-1" />
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+        {status === 'stock_unavailable' ? 'Stock Unavailable' : status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );
   };
@@ -146,6 +147,28 @@ const AdminDashboard = () => {
                   </div>
                 </div>
               </motion.div>
+
+              {/* Needs Attention Card - Stock Unavailable Orders */}
+              {stats.needsAttentionCount > 0 && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.05 }}
+                  className="bg-white rounded-xl shadow-sm p-6 border-2 border-orange-200 cursor-pointer hover:border-orange-400 transition-colors"
+                  onClick={() => handleStatusFilter('stock_unavailable')}
+                >
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-orange-600 mb-1 font-medium">⚠️ Needs Attention</p>
+                      <p className="text-2xl font-bold text-orange-600">{stats.needsAttentionCount}</p>
+                      <p className="text-xs text-orange-400 mt-1">Stock unavailable</p>
+                    </div>
+                    <div className="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                      <FaExclamationTriangle className="text-orange-600 text-xl" />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
@@ -379,6 +402,16 @@ const AdminDashboard = () => {
                   }`}
                 >
                   Delivered
+                </button>
+                <button
+                  onClick={() => handleStatusFilter('stock_unavailable')}
+                  className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    filters.status === 'stock_unavailable'
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Stock Issues
                 </button>
               </div>
             </div>

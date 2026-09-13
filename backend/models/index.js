@@ -36,6 +36,7 @@ const OrderItem = require('./OrderItem')(sequelize);
 const Payment = require('./Payment')(sequelize);
 const Address = require('./Address')(sequelize);
 const AdminActionLog = require('./AdminActionLog')(sequelize);
+const PendingCheckout = require('./PendingCheckout')(sequelize);
 
 // Associations
 const defineAssociations = () => {
@@ -43,6 +44,7 @@ const defineAssociations = () => {
   User.hasMany(Order, { foreignKey: 'user_id', onDelete: 'CASCADE' });
   User.hasMany(Address, { foreignKey: 'user_id', onDelete: 'CASCADE' });
   User.hasMany(AdminActionLog, { foreignKey: 'admin_user_id', onDelete: 'CASCADE' });
+  User.hasMany(PendingCheckout, { foreignKey: 'user_id', onDelete: 'CASCADE' });
 
   // AdminActionLog associations
   AdminActionLog.belongsTo(User, { foreignKey: 'admin_user_id', as: 'admin' });
@@ -77,5 +79,6 @@ module.exports = {
   Payment,
   Address,
   AdminActionLog,
+  PendingCheckout,
   testConnection
 };

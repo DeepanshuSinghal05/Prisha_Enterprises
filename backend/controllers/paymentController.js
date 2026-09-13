@@ -1,6 +1,7 @@
-const { Payment, Order, sequelize } = require('../models');
+const { Payment, Order, PendingCheckout, sequelize } = require('../models');
 const { logError, logSuspiciousTraffic } = require('../utils/logger');
 const { verifyWebhookSignature } = require('../utils/razorpay');
+const { processSuccessfulPayment } = require('../utils/paymentUtils');
 
 const handleWebhook = async (req, res) => {
   try {
@@ -51,104 +52,86 @@ const handleWebhook = async (req, res) => {
         console.log(`Unhandled webhook event: ${event}`);
     }
 
-    res.json({ success: true, message: 'Webhook processed' });
+    // Always return 200 to Razorpay (idempotency ensures no duplicate processing)
+    res.status(200).json({ success: true });
   } catch (error) {
     logError(error, req);
-    res.status(500).json({
-      success: false,
-      message: 'Webhook processing failed'
-    });
+    // Return 200 even on error to prevent Razorpay from retrying
+    // The payment has likely already been processed or will be handled by verifyPayment
+    res.status(200).json({ success: true });
   }
 };
 
 const handlePaymentAuthorized = async (data) => {
   const payment = data.payload.payment.entity;
-  const orderId = payment.order_id;
-  
-  if (!orderId) {
+  const razorpayOrderId = payment.order_id;
+
+  if (!razorpayOrderId) {
     console.warn('Webhook authorized: missing order_id');
     return;
   }
 
-  console.log(`Payment authorized for order: ${orderId}`);
-  const order = await Order.findOne({
-    where: { gateway_order_id: orderId }
-  });
+  console.log(`Payment authorized for Razorpay order: ${razorpayOrderId}`);
 
-  // Verify amount matches
-  if (order && order.payment_status === 'pending' && Math.round(order.total_amount * 100) === payment.amount) {
-    await order.update({
-      payment_status: 'paid',
-      order_status: 'confirmed'
+  // Process through the standard flow
+  try {
+    await processSuccessfulPayment({
+      gatewayOrderId: razorpayOrderId,
+      gatewayPaymentId: payment.id,
+      razorpayCapturedAmount: payment.amount / 100,
+      method: payment.card ? 'card' : payment.vpa ? 'upi' : 'netbanking',
+      rawResponse: payment,
+      userId: null // Will be read from PendingCheckout
     });
+  } catch (err) {
+    console.error(`Error processing payment.authorized: ${err.message}`);
   }
 };
 
 const handlePaymentCaptured = async (data) => {
   const payment = data.payload.payment.entity;
-  const orderId = payment.order_id;
-  
-  if (!orderId) {
+  const razorpayOrderId = payment.order_id;
+
+  if (!razorpayOrderId) {
     console.warn('Webhook captured: missing order_id');
     return;
   }
 
-  console.log(`Payment captured for order: ${orderId}`);
+  console.log(`Payment captured for Razorpay order: ${razorpayOrderId}`);
 
-  const t = await sequelize.transaction();
   try {
-    const order = await Order.findOne({
-      where: { gateway_order_id: orderId }
-    }, { transaction: t });
-
-    // Defense-in-depth: Verify amount matches to prevent logic bugs / payload manipulation
-    if (order && Math.round(order.total_amount * 100) === payment.amount) {
-      const existingPayment = await Payment.findOne({
-        where: { gateway_payment_id: payment.id }
-      }, { transaction: t });
-
-      if (!existingPayment) {
-        await Payment.create({
-          order_id: order.id,
-          gateway_payment_id: payment.id,
-          gateway_order_id: orderId,
-          amount: payment.amount / 100,
-          status: 'captured',
-          method: payment.card ? 'card' : payment.vpa ? 'upi' : 'netbanking',
-          raw_response: payment
-        }, { transaction: t });
-      }
-
-      if (order.payment_status !== 'paid') {
-        await order.update({
-          payment_status: 'paid',
-          order_status: 'confirmed'
-        }, { transaction: t });
-      }
-      await t.commit();
-    } else {
-      if (order) console.warn(`Amount mismatch in webhook captured: Expected ${order.total_amount * 100}, got ${payment.amount}`);
-      await t.rollback();
-    }
-  } catch (error) {
-    await t.rollback();
-    throw error;
+    await processSuccessfulPayment({
+      gatewayOrderId: razorpayOrderId,
+      gatewayPaymentId: payment.id,
+      razorpayCapturedAmount: payment.amount / 100,
+      method: payment.card ? 'card' : payment.vpa ? 'upi' : 'netbanking',
+      rawResponse: payment,
+      userId: null // Will be read from PendingCheckout
+    });
+  } catch (err) {
+    console.error(`Error processing payment.captured: ${err.message}`);
   }
 };
 
 const handlePaymentFailed = async (data) => {
   const payment = data.payload.payment.entity;
-  const orderId = payment.order_id;
+  const razorpayOrderId = payment.order_id;
 
-  if (!orderId) return;
-  console.log(`Payment failed for order: ${orderId}`);
+  if (!razorpayOrderId) return;
+  console.log(`Payment failed for Razorpay order: ${razorpayOrderId}`);
 
-  const order = await Order.findOne({
-    where: { gateway_order_id: orderId }
-  });
+  // Clean up pending checkout if it exists
+  try {
+    const pendingCheckout = await PendingCheckout.findOne({
+      where: { gateway_order_id: razorpayOrderId }
+    });
 
-  if (order && order.payment_status === 'pending') {
-    await order.update({ payment_status: 'failed' });
+    if (pendingCheckout) {
+      await pendingCheckout.destroy();
+      console.log(`Cleaned up pending checkout for failed payment: ${razorpayOrderId}`);
+    }
+  } catch (err) {
+    console.error(`Error cleaning up pending checkout: ${err.message}`);
   }
 };
 
@@ -158,17 +141,17 @@ const handleOrderPaid = async (data) => {
 
   console.log(`Order paid: ${orderData.id}`);
 
-  const dbOrder = await Order.findOne({
-    where: { gateway_order_id: orderData.id }
-  });
-
-  // Verify amount matches
-  if (dbOrder && dbOrder.payment_status === 'pending' && Math.round(dbOrder.total_amount * 100) === orderData.amount) {
-    await dbOrder.update({
-      payment_status: 'paid',
-      order_status: 'confirmed',
-      payment_id: orderData.receipt
+  try {
+    await processSuccessfulPayment({
+      gatewayOrderId: orderData.id,
+      gatewayPaymentId: null, // No payment ID in order.paid
+      razorpayCapturedAmount: orderData.amount_paid / 100,
+      method: 'razorpay',
+      rawResponse: orderData,
+      userId: null
     });
+  } catch (err) {
+    console.error(`Error processing order.paid: ${err.message}`);
   }
 };
 

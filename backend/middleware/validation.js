@@ -54,11 +54,58 @@ const cartValidators = {
       .isInt({ min: 1 })
       .withMessage('Quantity must be at least 1'),
     body('shippingAddress')
-      .isObject()
-      .withMessage('Shipping address is required')
+      .custom((value, { req }) => {
+        const hasShippingAddress = value !== undefined && value !== null;
+        const hasAddressId = req.body.addressId !== undefined &&
+          req.body.addressId !== null && req.body.addressId !== '';
+
+        if (hasShippingAddress === hasAddressId) {
+          throw new Error('Provide either a saved address ID or a new shipping address');
+        }
+
+        if (hasShippingAddress && (typeof value !== 'object' || Array.isArray(value))) {
+          throw new Error('Shipping address must be an object');
+        }
+
+        return true;
+      }),
+    body('addressId')
+      .optional({ values: 'null' })
+      .isInt({ min: 1 })
+      .withMessage('Address ID must be a positive integer'),
+    body('shippingAddress.address_line1')
+      .if(body('shippingAddress').exists({ checkNull: true }))
+      .trim()
+      .notEmpty()
+      .withMessage('Address line 1 is required'),
+    body('shippingAddress.address_line2')
+      .optional()
+      .trim(),
+    body('shippingAddress.city')
+      .if(body('shippingAddress').exists({ checkNull: true }))
+      .trim()
+      .notEmpty()
+      .withMessage('City is required'),
+    body('shippingAddress.state')
+      .if(body('shippingAddress').exists({ checkNull: true }))
+      .trim()
+      .notEmpty()
+      .withMessage('State is required'),
+    body('shippingAddress.pincode')
+      .if(body('shippingAddress').exists({ checkNull: true }))
+      .matches(/^[0-9]{6}$/)
+      .withMessage('Pincode must be 6 digits'),
+    body('shippingAddress.phone')
+      .if(body('shippingAddress').exists({ checkNull: true }))
+      .trim()
+      .matches(/^[\+]?[0-9]{10,15}$/)
+      .withMessage('Please provide a valid phone number'),
+    body('shippingAddress.is_default')
+      .optional()
+      .isBoolean()
+      .withMessage('Default address flag must be a boolean')
   ],
   payment: [
-    body('orderId').isInt({ min: 1 }).withMessage('Valid application order ID is required'),
     body('razorpayOrderId').isString().trim().escape().notEmpty().withMessage('Razorpay Order ID is required'),
     body('razorpayPaymentId').isString().trim().escape().notEmpty().withMessage('Razorpay Payment ID is required'),
     body('razorpaySignature').isString().trim().escape().notEmpty().withMessage('Razorpay Signature is required')

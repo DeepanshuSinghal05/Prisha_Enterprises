@@ -120,7 +120,8 @@ const parseResponse = async (response) => {
 export const createRazorpayOrder = async (
   items,
   shippingAddress,
-  token
+  token,
+  addressId
 ) => {
   try {
     if (!token) {
@@ -144,6 +145,7 @@ export const createRazorpayOrder = async (
       body: JSON.stringify({
         items,
         shippingAddress,
+        addressId,
       }),
     });
 
@@ -153,19 +155,22 @@ export const createRazorpayOrder = async (
       throw new Error('Empty response received from order API');
     }
 
-    if (!data.order) {
-      console.error('❌ Order missing from backend response:', data);
+    // Backend returns checkout data instead of order data (order created after payment)
+    const checkout = data.checkout;
+
+    if (!checkout) {
+      console.error('❌ Checkout missing from backend response:', data);
 
       throw new Error(
         data.message ||
-        'Backend did not return a valid order'
+        'Backend did not return checkout data'
       );
     }
 
-    if (!data.order.razorpay_order_id) {
+    if (!checkout.razorpay_order_id) {
       console.error(
         '❌ Razorpay Order ID missing:',
-        data.order
+        checkout
       );
 
       throw new Error(
@@ -175,7 +180,7 @@ export const createRazorpayOrder = async (
 
     console.log(
       '✅ Razorpay Order ID:',
-      data.order.razorpay_order_id
+      checkout.razorpay_order_id
     );
 
     return data;
@@ -197,7 +202,6 @@ export const createRazorpayOrder = async (
  * Signature verification must happen on the backend.
  */
 export const verifyPayment = async (
-  orderId,
   razorpayOrderId,
   razorpayPaymentId,
   razorpaySignature,
@@ -225,7 +229,6 @@ export const verifyPayment = async (
     console.log('========================================');
     console.log('Verifying Razorpay Payment');
     console.log('========================================');
-    console.log('Application Order ID:', orderId);
     console.log('Razorpay Order ID:', razorpayOrderId);
     console.log('Razorpay Payment ID:', razorpayPaymentId);
     console.log('========================================');
@@ -233,7 +236,6 @@ export const verifyPayment = async (
     const data = await apiRequest('/cart/checkout/verify-payment', {
       method: 'POST',
       body: JSON.stringify({
-        orderId,
         razorpayOrderId,
         razorpayPaymentId,
         razorpaySignature,
@@ -439,6 +441,7 @@ export const initializePayment = async (options) => {
 export const processPayment = async ({
   items,
   shippingAddress,
+  addressId,
   token,
   onSuccess,
   onError,
@@ -494,35 +497,37 @@ export const processPayment = async ({
     /**
      * STEP 1
      *
-     * Create order through backend.
+     * Create checkout through backend.
+     * Backend returns checkout data (not order) - order is created after payment.
      */
     console.log(
-      'STEP 1: Creating backend/Razorpay order...'
+      'STEP 1: Creating checkout...'
     );
 
     const orderData =
       await createRazorpayOrder(
         items,
         shippingAddress,
-        token
+        token,
+        addressId
       );
 
     console.log(
-      '✅ Backend order created:',
+      '✅ Backend checkout created:',
       orderData
     );
 
     /**
-     * Validate order data
+     * Validate checkout data
      */
-    if (!orderData.order) {
+    if (!orderData.checkout) {
       throw new Error(
-        'Invalid order response from backend'
+        'Invalid checkout response from backend'
       );
     }
 
     if (
-      !orderData.order.razorpay_order_id
+      !orderData.checkout.razorpay_order_id
     ) {
       throw new Error(
         'Backend did not return razorpay_order_id'
@@ -530,11 +535,11 @@ export const processPayment = async ({
     }
 
     if (
-      orderData.order.amount === undefined ||
-      orderData.order.amount === null
+      orderData.checkout.amount === undefined ||
+      orderData.checkout.amount === null
     ) {
       throw new Error(
-        'Backend did not return order amount'
+        'Backend did not return checkout amount'
       );
     }
 
@@ -554,19 +559,19 @@ export const processPayment = async ({
          * already in paise.
          */
         amount:
-          orderData.order.amount,
+          orderData.checkout.amount,
 
         orderId:
-          orderData.order.razorpay_order_id,
+          orderData.checkout.razorpay_order_id,
 
         currency:
-          orderData.order.currency || 'INR',
+          orderData.checkout.currency || 'INR',
 
         name:
           'Prisha Enterprises',
 
         description:
-          'LED TV Purchase',
+          'Order Purchase',
 
         prefill: {
           name:
@@ -610,7 +615,6 @@ export const processPayment = async ({
              */
             const verifyData =
               await verifyPayment(
-                orderData.order.id,
                 response.razorpay_order_id,
                 response.razorpay_payment_id,
                 response.razorpay_signature,

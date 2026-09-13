@@ -37,10 +37,39 @@ module.exports = (sequelize) => {
       field: 'gateway_order_id'
     },
     order_status: {
-      type: DataTypes.ENUM('placed', 'confirmed', 'shipped', 'delivered', 'cancelled'),
+      type: DataTypes.ENUM('placed', 'confirmed', 'shipped', 'delivered', 'cancelled', 'stock_unavailable'),
       allowNull: false,
       defaultValue: 'placed',
       field: 'order_status'
+    },
+    stock_failures: {
+      type: DataTypes.JSON,
+      allowNull: true,
+      field: 'stock_failures'
+    },
+    shipping_address: {
+      type: DataTypes.TEXT,
+      allowNull: true,
+      field: 'shipping_address',
+      get() {
+        const raw = this.getDataValue('shipping_address');
+        if (!raw) return null;
+        try {
+          return typeof raw === 'string' ? JSON.parse(raw) : raw;
+        } catch {
+          return null;
+        }
+      }
+    },
+    shipped_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'shipped_at'
+    },
+    delivered_at: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'delivered_at'
     },
     created_at: {
       type: DataTypes.DATE,

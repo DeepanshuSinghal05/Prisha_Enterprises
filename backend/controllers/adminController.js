@@ -9,10 +9,11 @@ const VALID_TRANSITIONS = {
   confirmed: ['shipped', 'cancelled'],
   shipped: ['delivered'],
   delivered: [],
-  cancelled: []
+  cancelled: [],
+  stock_unavailable: ['cancelled', 'confirmed'] // Can cancel or manually confirm if stock becomes available
 };
 
-const ORDER_STATUSES = ['placed', 'confirmed', 'shipped', 'delivered', 'cancelled'];
+const ORDER_STATUSES = ['placed', 'confirmed', 'shipped', 'delivered', 'cancelled', 'stock_unavailable'];
 
 const adminController = {
   /**
@@ -230,6 +231,15 @@ const adminController = {
 
       // Update order status
       order.order_status = status;
+
+      // Set timestamp on first transition only (don't overwrite)
+      if (status === 'shipped' && !order.shipped_at) {
+        order.shipped_at = new Date();
+      }
+      if (status === 'delivered' && !order.delivered_at) {
+        order.delivered_at = new Date();
+      }
+
       await order.save();
 
       // Log the action
@@ -295,6 +305,10 @@ const adminController = {
       const shippedOrders = await Order.count({ where: { order_status: 'shipped' } });
       const deliveredOrders = await Order.count({ where: { order_status: 'delivered' } });
       const cancelledOrders = await Order.count({ where: { order_status: 'cancelled' } });
+      const stockUnavailableOrders = await Order.count({ where: { order_status: 'stock_unavailable' } });
+
+      // Needs attention: orders requiring admin action
+      const needsAttentionCount = stockUnavailableOrders;
 
       // Total revenue from delivered orders
       const revenueResult = await Order.findAll({
@@ -336,7 +350,8 @@ const adminController = {
         confirmed: confirmedOrders,
         shipped: shippedOrders,
         delivered: deliveredOrders,
-        cancelled: cancelledOrders
+        cancelled: cancelledOrders,
+        stock_unavailable: stockUnavailableOrders
       };
 
       // Monthly revenue comparison (current vs previous month)
@@ -400,6 +415,8 @@ const adminController = {
           shippedOrders,
           deliveredOrders,
           cancelledOrders,
+          stockUnavailableOrders,
+          needsAttentionCount,
           totalRevenue: parseFloat(totalRevenue) || 0,
           recentOrders,
           revenueTrend,

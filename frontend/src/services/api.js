@@ -145,7 +145,6 @@ export const cartAPI = {
 
   // Verify payment after Razorpay payment
   verifyPayment: (
-    orderId,
     razorpayOrderId,
     razorpayPaymentId,
     razorpaySignature
@@ -153,7 +152,6 @@ export const cartAPI = {
     apiRequest('/cart/checkout/verify-payment', {
       method: 'POST',
       body: JSON.stringify({
-        orderId,
         razorpayOrderId,
         razorpayPaymentId,
         razorpaySignature,
