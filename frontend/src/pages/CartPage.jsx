@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 
 const CartPage = () => {
   const navigate = useNavigate();
-  const { items, removeFromCart, updateQuantity, cartTotal, totalItems } = useCart();
+  const { items, removeFromCart, updateQuantity, cartSubtotal, cartDeliveryTotal, cartTotal, totalItems } = useCart();
   const { isAuthenticated, user } = useAuth();
   const [isCheckingOut, setIsCheckingOut] = useState(false);
   const [cartProducts, setCartProducts] = useState({});
@@ -69,7 +69,8 @@ const CartPage = () => {
         productId: item.productId,
         quantity: item.quantity,
         name: item.name,
-        price: item.price
+        price: item.price,
+        delivery_charge: item.delivery_charge
       }));
 
       // Navigate to checkout page for address editing
@@ -151,9 +152,16 @@ const CartPage = () => {
                       <h3 className="font-semibold text-gray-900">
                         {getProductName(item.productId)}
                       </h3>
-                      <p className="text-primary-700 font-bold mt-1">
-                        ₹{(((cartProducts[item.productId]?.price || 0) + (cartProducts[item.productId]?.delivery_charge || 0)) * item.quantity).toLocaleString('en-IN')}
-                      </p>
+                      <div className="mt-1">
+                        <span className="text-primary-700 font-bold">
+                          ₹{((cartProducts[item.productId]?.price || 0) * item.quantity).toLocaleString('en-IN')}
+                        </span>
+                        {(cartProducts[item.productId]?.delivery_charge || 0) > 0 && (
+                          <span className="text-gray-500 text-sm ml-2">
+                            + ₹{((cartProducts[item.productId]?.delivery_charge || 0) * item.quantity).toLocaleString('en-IN')} delivery
+                          </span>
+                        )}
+                      </div>
 
                       <div className="flex items-center mt-4 space-x-4">
                         <div className="flex items-center space-x-2">
@@ -192,6 +200,16 @@ const CartPage = () => {
                 <h2 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h2>
 
                 <div className="space-y-3 mb-6">
+                  <div className="flex justify-between text-gray-600">
+                    <span>Subtotal ({totalItems} {totalItems === 1 ? 'item' : 'items'})</span>
+                    <span>₹{cartSubtotal.toLocaleString('en-IN')}</span>
+                  </div>
+
+                  <div className="flex justify-between text-gray-600">
+                    <span>Delivery Charges</span>
+                    <span>{cartDeliveryTotal > 0 ? `₹${cartDeliveryTotal.toLocaleString('en-IN')}` : 'Free'}</span>
+                  </div>
+
                   <div className="border-t pt-3 flex justify-between text-lg font-bold text-gray-900">
                     <span>Total</span>
                     <span className="text-primary-700">₹{cartTotal.toLocaleString('en-IN')}</span>

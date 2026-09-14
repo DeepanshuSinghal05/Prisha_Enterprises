@@ -83,18 +83,25 @@ export function CartProvider({ children }) {
     return items.reduce((sum, item) => sum + item.quantity, 0);
   }, [items]);
 
+  const cartSubtotal = useMemo(() => {
+    return items.reduce((sum, item) => sum + (Number(item.price) || 0) * item.quantity, 0);
+  }, [items]);
+
+  const cartDeliveryTotal = useMemo(() => {
+    return items.reduce((sum, item) => sum + (Number(item.delivery_charge) || 0) * item.quantity, 0);
+  }, [items]);
+
   // Display estimate only; the backend supplies the authoritative total at checkout.
   const cartTotal = useMemo(() => {
-    return items.reduce(
-      (sum, item) => sum + ((Number(item.price) || 0) + (Number(item.delivery_charge) || 0)) * item.quantity,
-      0
-    );
-  }, [items]);
+    return cartSubtotal + cartDeliveryTotal;
+  }, [cartSubtotal, cartDeliveryTotal]);
 
   const value = {
     items,
     cartItems,
     totalItems,
+    cartSubtotal,
+    cartDeliveryTotal,
     cartTotal,
     addToCart,
     removeFromCart,

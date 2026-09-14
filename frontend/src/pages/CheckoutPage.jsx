@@ -33,10 +33,18 @@ const CheckoutPage = () => {
   }, [location.state]);
 
   // Display estimate only; the checkout endpoint returns the authoritative DB total.
-  const cartTotal = paymentItems.reduce(
+  const cartSubtotal = paymentItems.reduce(
     (sum, item) => sum + (Number(item.price) || 0) * item.quantity,
     0
   );
+
+  const cartDeliveryTotal = paymentItems.reduce(
+    (sum, item) => sum + (Number(item.delivery_charge) || 0) * item.quantity,
+    0
+  );
+
+  const cartTotal = cartSubtotal + cartDeliveryTotal;
+  const totalItems = paymentItems.reduce((sum, item) => sum + item.quantity, 0);
 
   const [isProcessing, setIsProcessing] = useState(false);
   const [paymentStatus, setPaymentStatus] = useState(null);
@@ -460,15 +468,33 @@ const CheckoutPage = () => {
                     <h2 className="font-semibold text-gray-900">Order Summary</h2>
                   </div>
                   <div className="p-6">
-                    {paymentItems.map((item) => (
-                      <div key={item.productId} className="flex justify-between py-3 border-b border-gray-100 last:border-0">
-                        <span className="text-gray-600 text-sm">{getProductName(item.productId)}</span>
-                        <span className="font-medium text-gray-900">₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
+                    <div className="mb-4 space-y-2">
+                      {paymentItems.map((item) => (
+                        <div key={item.productId} className="flex justify-between py-2 border-b border-gray-100 last:border-0">
+                          <div className="flex flex-col">
+                            <span className="text-gray-600 text-sm">{getProductName(item.productId)}</span>
+                            {(item.delivery_charge || 0) > 0 && <span className="text-gray-400 text-xs">+ ₹{((item.delivery_charge || 0) * item.quantity).toLocaleString('en-IN')} delivery</span>}
+                          </div>
+                          <span className="font-medium text-gray-900">₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="space-y-3 mb-6">
+                      <div className="flex justify-between text-gray-600 text-sm">
+                        <span>Subtotal ({totalItems} {totalItems === 1 ? 'item' : 'items'})</span>
+                        <span>₹{cartSubtotal.toLocaleString('en-IN')}</span>
                       </div>
-                    ))}
-                    <div className="flex justify-between text-xl font-bold text-primary-700 border-t pt-4 mb-6">
-                      <span>Total</span>
-                      <span>₹{cartTotal.toLocaleString('en-IN')}</span>
+
+                      <div className="flex justify-between text-gray-600 text-sm">
+                        <span>Delivery Charges</span>
+                        <span>{cartDeliveryTotal > 0 ? `₹${cartDeliveryTotal.toLocaleString('en-IN')}` : 'Free'}</span>
+                      </div>
+
+                      <div className="border-t pt-3 flex justify-between text-xl font-bold text-primary-700">
+                        <span>Total</span>
+                        <span>₹{cartTotal.toLocaleString('en-IN')}</span>
+                      </div>
                     </div>
 
                     <button
