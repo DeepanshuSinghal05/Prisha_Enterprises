@@ -241,7 +241,7 @@ const AdminOrderDetailPage = () => {
                         </p>
                         <p className="text-sm text-gray-500">
                           Price: ₹
-                          {parseFloat(item.price_at_purchase).toLocaleString(
+                          {(parseFloat(item.price_at_purchase) + parseFloat(item.delivery_charge_at_purchase || 0)).toLocaleString(
                             "en-IN"
                           )}{" "}
                           each
@@ -251,7 +251,7 @@ const AdminOrderDetailPage = () => {
                         <p className="font-semibold text-gray-900">
                           ₹
                           {(
-                            parseFloat(item.price_at_purchase) * item.quantity
+                            (parseFloat(item.price_at_purchase) + parseFloat(item.delivery_charge_at_purchase || 0)) * item.quantity
                           ).toLocaleString("en-IN")}
                         </p>
                       </div>

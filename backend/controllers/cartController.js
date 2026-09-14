@@ -75,14 +75,15 @@ const createCheckoutOrder = async (req, res) => {
         });
       }
 
-      // Calculate line total
-      const lineTotal = product.price * item.quantity;
+      // Calculate line total: (product price + delivery charge) * quantity
+      const lineTotal = (parseFloat(product.price) + parseFloat(product.delivery_charge || 0)) * item.quantity;
       calculatedTotal += lineTotal;
 
       return {
         productId: product.id,
         quantity: item.quantity,
         priceAtPurchase: product.price,
+        deliveryChargeAtPurchase: product.delivery_charge || 0,
         productName: product.name
       };
     });
@@ -212,7 +213,7 @@ const createCheckoutOrder = async (req, res) => {
           productId: i.productId,
           name: i.productName,
           quantity: i.quantity,
-          price: i.priceAtPurchase
+          price: parseFloat(i.priceAtPurchase) + parseFloat(i.deliveryChargeAtPurchase)
         })),
         shippingAddress: savedAddress ? {
           address_line1: savedAddress.address_line1,
@@ -443,13 +444,14 @@ const processMockPayment = async (req, res) => {
         throw new Error(`Insufficient stock for ${product.name}. Available: ${product.stock_quantity}`);
       }
 
-      const lineTotal = product.price * item.quantity;
+      const lineTotal = (parseFloat(product.price) + parseFloat(product.delivery_charge || 0)) * item.quantity;
       calculatedTotal += lineTotal;
 
       return {
         productId: product.id,
         quantity: item.quantity,
         priceAtPurchase: product.price,
+        deliveryChargeAtPurchase: product.delivery_charge || 0,
         productName: product.name
       };
     });
@@ -468,7 +470,8 @@ const processMockPayment = async (req, res) => {
         order_id: order.id,
         product_id: item.productId,
         quantity: item.quantity,
-        price_at_purchase: item.priceAtPurchase
+        price_at_purchase: item.priceAtPurchase,
+        delivery_charge_at_purchase: item.deliveryChargeAtPurchase || 0
       }, { transaction: t });
 
       // Decrement stock
@@ -505,7 +508,7 @@ const processMockPayment = async (req, res) => {
           productId: i.productId,
           name: i.productName,
           quantity: i.quantity,
-          price: i.priceAtPurchase
+          price: parseFloat(i.priceAtPurchase) + parseFloat(i.deliveryChargeAtPurchase || 0)
         }))
       }
     });

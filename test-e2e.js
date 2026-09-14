@@ -135,24 +135,36 @@ async function runTests() {
   res = await req('/products', 'GET', null, customerSession);
   console.log(`3a. Get Products -> Status: ${res.status}`);
   if (res.status === 200 && res.data.products?.length > 0) {
-    console.log('   Result: PASS');
+    if (res.data.products[0].delivery_charge !== undefined) {
+      console.log('   Result: PASS (Contains delivery_charge)');
+    } else {
+      console.log('   Result: FAIL (Missing delivery_charge)');
+    }
   } else {
     console.log('   Result: FAIL');
   }
   const productId = res.data?.products?.[0]?.id;
+  const productPrice = parseFloat(res.data?.products?.[0]?.price) || 0;
+  const productDeliveryCharge = parseFloat(res.data?.products?.[0]?.delivery_charge) || 0;
   let orderId;
 
   if (productId) {
     res = await req('/cart/checkout/place-order', 'POST', {
-      items: [{ productId, quantity: 1 }],
+      items: [{ productId, quantity: 2 }],
       shippingAddress: {
         address_line1: '123 Test St', city: 'Delhi', state: 'Delhi', pincode: '110001', phone: '9876543210'
       }
     }, customerSession);
     console.log(`3b. Mock Order Placement -> Status: ${res.status}`);
     if (res.status === 200) {
-      console.log(`   Result: PASS`);
-      orderId = res.data?.order?.id;
+      const order = res.data?.order;
+      const expectedTotal = 2 * (productPrice + productDeliveryCharge);
+      if (parseFloat(order.total_amount) === expectedTotal) {
+        console.log(`   Result: PASS (Total inclusive of delivery charge is correct: ${expectedTotal})`);
+      } else {
+        console.log(`   Result: FAIL (Total is ${order.total_amount}, expected ${expectedTotal})`);
+      }
+      orderId = order?.id;
     } else {
       console.log(`   Result: FAIL - ${JSON.stringify(res.data)}`);
     }

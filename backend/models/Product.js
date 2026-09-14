@@ -83,6 +83,12 @@ module.exports = (sequelize) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false
     },
+    delivery_charge: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+      field: 'delivery_charge'
+    },
     image_url: {
       type: DataTypes.STRING(255),
       allowNull: true,

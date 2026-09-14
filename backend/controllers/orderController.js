@@ -53,6 +53,7 @@ const getMyOrders = async (req, res) => {
           product_id: oi.product_id,
           quantity: oi.quantity,
           price_at_purchase: oi.price_at_purchase,
+          delivery_charge_at_purchase: oi.delivery_charge_at_purchase || 0,
           product: {
             id: oi.product.id,
             name: oi.product.name,
@@ -130,6 +131,7 @@ const getOrderById = async (req, res) => {
           product_id: oi.product_id,
           quantity: oi.quantity,
           price_at_purchase: oi.price_at_purchase,
+          delivery_charge_at_purchase: oi.delivery_charge_at_purchase || 0,
           product: {
             id: oi.product.id,
             name: oi.product.name,

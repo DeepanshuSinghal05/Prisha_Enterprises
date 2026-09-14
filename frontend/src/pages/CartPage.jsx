@@ -152,7 +152,7 @@ const CartPage = () => {
                         {getProductName(item.productId)}
                       </h3>
                       <p className="text-primary-700 font-bold mt-1">
-                        ₹{(cartProducts[item.productId]?.price || 0).toLocaleString('en-IN')}
+                        ₹{(((cartProducts[item.productId]?.price || 0) + (cartProducts[item.productId]?.delivery_charge || 0)) * item.quantity).toLocaleString('en-IN')}
                       </p>
 
                       <div className="flex items-center mt-4 space-x-4">
@@ -192,14 +192,6 @@ const CartPage = () => {
                 <h2 className="text-lg font-bold text-gray-900 mb-4">Order Summary</h2>
 
                 <div className="space-y-3 mb-6">
-                  <div className="flex justify-between text-gray-600">
-                    <span>Subtotal</span>
-                    <span>₹{cartTotal.toLocaleString('en-IN')}</span>
-                  </div>
-                  <div className="flex justify-between text-gray-600">
-                    <span>Delivery</span>
-                    <span className="text-green-600 font-medium">Free</span>
-                  </div>
                   <div className="border-t pt-3 flex justify-between text-lg font-bold text-gray-900">
                     <span>Total</span>
                     <span className="text-primary-700">₹{cartTotal.toLocaleString('en-IN')}</span>

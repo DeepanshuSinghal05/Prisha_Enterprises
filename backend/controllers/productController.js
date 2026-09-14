@@ -48,6 +48,7 @@ const getProducts = async (req, res) => {
         bluetooth: p.bluetooth,
         smart_features: p.smart_features,
         price: p.price,
+        delivery_charge: p.delivery_charge,
         image_url: p.image_url,
         stock_quantity: p.stock_quantity
       })),
@@ -100,6 +101,7 @@ const getProductById = async (req, res) => {
         bluetooth: product.bluetooth,
         smart_features: product.smart_features,
         price: product.price,
+        delivery_charge: product.delivery_charge,
         image_url: product.image_url,
         stock_quantity: product.stock_quantity
       }

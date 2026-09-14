@@ -99,7 +99,8 @@ const processSuccessfulPayment = async ({
         order_id: order.id,
         product_id: item.productId,
         quantity: item.quantity,
-        price_at_purchase: item.priceAtPurchase
+        price_at_purchase: item.priceAtPurchase,
+        delivery_charge_at_purchase: item.deliveryChargeAtPurchase || 0
       }, { transaction: t });
 
       // Conditional stock decrement

@@ -215,11 +215,11 @@ const OrderDetailPage = () => {
                        <div className="flex-1 min-w-0 text-center sm:text-left w-full">
                          <h4 className="font-medium text-gray-900">{item.product?.name || 'Product'}</h4>
                          <div className="text-sm text-gray-500 mt-1">
-                           Quantity: {item.quantity} × <FaRupeeSign className="inline text-[10px]" />{Number(item.price_at_purchase).toLocaleString('en-IN')}
+                           Quantity: {item.quantity} × <FaRupeeSign className="inline text-[10px]" />{(Number(item.price_at_purchase) + Number(item.delivery_charge_at_purchase || 0)).toLocaleString('en-IN')}
                          </div>
                        </div>
                        <div className="font-bold text-gray-900 text-lg sm:text-right w-full sm:w-auto">
-                         <FaRupeeSign className="inline text-sm mr-0.5" />{(Number(item.price_at_purchase) * item.quantity).toLocaleString('en-IN')}
+                         <FaRupeeSign className="inline text-sm mr-0.5" />{((Number(item.price_at_purchase) + Number(item.delivery_charge_at_purchase || 0)) * item.quantity).toLocaleString('en-IN')}
                        </div>
                      </div>
                    ))}

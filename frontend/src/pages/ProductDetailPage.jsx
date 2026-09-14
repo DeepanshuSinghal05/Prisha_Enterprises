@@ -302,10 +302,6 @@ const ProductDetailPage = () => {
                 <div className="mt-4 flex items-center justify-center space-x-6 text-sm text-gray-500">
                   <div className="flex items-center">
                     <FaCheck className="h-4 w-4 text-green-500 mr-2" />
-                    <span>Free Delivery</span>
-                  </div>
-                  <div className="flex items-center">
-                    <FaCheck className="h-4 w-4 text-green-500 mr-2" />
                     <span>Professional Setup</span>
                   </div>
                   <div className="flex items-center">

@@ -39,6 +39,7 @@ export function CartProvider({ children }) {
       ? {
           name: product.name,
           price: Number(product.price),
+          delivery_charge: Number(product.delivery_charge || 0),
           image_url: product.image_url || product.image || null
         }
       : {};
@@ -85,7 +86,7 @@ export function CartProvider({ children }) {
   // Display estimate only; the backend supplies the authoritative total at checkout.
   const cartTotal = useMemo(() => {
     return items.reduce(
-      (sum, item) => sum + (Number(item.price) || 0) * item.quantity,
+      (sum, item) => sum + ((Number(item.price) || 0) + (Number(item.delivery_charge) || 0)) * item.quantity,
       0
     );
   }, [items]);

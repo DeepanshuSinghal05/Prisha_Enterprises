@@ -466,14 +466,6 @@ const CheckoutPage = () => {
                         <span className="font-medium text-gray-900">₹{(item.price * item.quantity).toLocaleString('en-IN')}</span>
                       </div>
                     ))}
-                    <div className="flex justify-between text-lg mt-6 mb-4">
-                      <span className="text-gray-600">Subtotal</span>
-                      <span className="font-bold text-gray-900">₹{cartTotal.toLocaleString('en-IN')}</span>
-                    </div>
-                    <div className="flex justify-between text-lg mb-4">
-                      <span className="text-gray-600">Delivery</span>
-                      <span className="text-green-600">Free</span>
-                    </div>
                     <div className="flex justify-between text-xl font-bold text-primary-700 border-t pt-4 mb-6">
                       <span>Total</span>
                       <span>₹{cartTotal.toLocaleString('en-IN')}</span>

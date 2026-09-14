@@ -33,6 +33,12 @@ module.exports = (sequelize) => {
       type: DataTypes.DECIMAL(10, 2),
       allowNull: false,
       field: 'price_at_purchase'
+    },
+    delivery_charge_at_purchase: {
+      type: DataTypes.DECIMAL(10, 2),
+      allowNull: false,
+      defaultValue: 0.00,
+      field: 'delivery_charge_at_purchase'
     }
   }, {
     tableName: 'order_items',

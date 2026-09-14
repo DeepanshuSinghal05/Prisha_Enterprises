@@ -2,8 +2,8 @@ const { sequelize, Product, Order, OrderItem, Payment, PendingCheckout, User } =
 const { processSuccessfulPayment } = require('./utils/paymentUtils');
 
 async function resetStock() {
-  await Product.update({ stock_quantity: 50 }, { where: { id: [1, 2] } });
-  console.log('Reset stock for products 1 and 2 to 50');
+  await Product.update({ stock_quantity: 50, delivery_charge: 100 }, { where: { id: [1, 2] } });
+  console.log('Reset stock for products 1 and 2 to 50, and delivery_charge to 100');
 }
 
 async function reportState(scenarioName) {
@@ -16,11 +16,15 @@ async function reportState(scenarioName) {
   if (orders.length > 0) {
     const o = orders[0];
     console.log(`Order created: YES (ID: ${o.id})`);
+    console.log(`Total Amount: ${o.total_amount}`);
     console.log(`Status: payment=${o.payment_status}, order=${o.order_status}`);
     console.log(`Gateway Order ID: ${o.gateway_order_id}`);
 
     const items = await OrderItem.findAll({ where: { order_id: o.id } });
     console.log(`Order Items: ${items.length}`);
+    items.forEach(i => {
+      console.log(` - Product ${i.product_id} x ${i.quantity} @ ${i.price_at_purchase} + delivery ${i.delivery_charge_at_purchase} = ${(Number(i.price_at_purchase) + Number(i.delivery_charge_at_purchase)) * i.quantity}`);
+    });
   } else {
     console.log(`Order created: NO`);
   }
@@ -47,18 +51,22 @@ async function runScenarios() {
 
     // Create pending checkout
     const scen1Id = 'order_scen1_' + Date.now();
+    // In Scenario 1, total is quantity: 2, price: (product price + 100).
+    // Because products might have dynamic prices in DB, wait, the pending_checkout only requires amount?
+    // Wait, createCheckoutOrder actually fetches the real price. My test creates PendingCheckout directly.
+    // The test sets PendingCheckout directly, but my delivery feature changes processSuccessfulPayment to read `deliveryChargeAtPurchase` from PendingCheckout's items JSON.
     await PendingCheckout.create({
       gateway_order_id: scen1Id,
       user_id: 1,
-      items: JSON.stringify([{ productId: 1, quantity: 2, priceAtPurchase: 100 }]),
-      amount: 200
+      items: JSON.stringify([{ productId: 1, quantity: 2, priceAtPurchase: 100, deliveryChargeAtPurchase: 100 }]),
+      amount: 400
     });
 
     // Process payment
     await processSuccessfulPayment({
       gatewayOrderId: scen1Id,
       gatewayPaymentId: 'pay_scen1_' + Date.now(),
-      razorpayCapturedAmount: 200,
+      razorpayCapturedAmount: 400,
       method: 'card',
       userId: 1
     });
@@ -74,14 +82,14 @@ async function runScenarios() {
     await PendingCheckout.create({
       gateway_order_id: scen2Id,
       user_id: 1,
-      items: JSON.stringify([{ productId: 1, quantity: 5, priceAtPurchase: 100 }]),
-      amount: 500
+      items: JSON.stringify([{ productId: 1, quantity: 5, priceAtPurchase: 100, deliveryChargeAtPurchase: 100 }]),
+      amount: 1000
     });
 
     await processSuccessfulPayment({
       gatewayOrderId: scen2Id,
       gatewayPaymentId: 'pay_scen2_' + Date.now(),
-      razorpayCapturedAmount: 500,
+      razorpayCapturedAmount: 1000,
       method: 'card',
       userId: 1
     });
@@ -94,7 +102,7 @@ async function runScenarios() {
     const result3 = await processSuccessfulPayment({
       gatewayOrderId: scen2Id, // Same as before
       gatewayPaymentId: 'pay_scen3_duplicate', // New payment ID but same order
-      razorpayCapturedAmount: 500
+      razorpayCapturedAmount: 1000
     });
 
     console.log(`Idempotency result: alreadyProcessed=${result3.alreadyProcessed}`);
@@ -112,8 +120,8 @@ async function runScenarios() {
     await PendingCheckout.create({
       gateway_order_id: scen4Id,
       user_id: 1,
-      items: JSON.stringify([{ productId: 1, quantity: 2, priceAtPurchase: 100 }]),
-      amount: 200
+      items: JSON.stringify([{ productId: 1, quantity: 2, priceAtPurchase: 100, deliveryChargeAtPurchase: 100 }]),
+      amount: 400
     });
 
     // Simulate someone else buying the stock while user is on Razorpay screen
@@ -123,7 +131,7 @@ async function runScenarios() {
     await processSuccessfulPayment({
       gatewayOrderId: scen4Id,
       gatewayPaymentId: 'pay_scen4_' + Date.now(),
-      razorpayCapturedAmount: 200,
+      razorpayCapturedAmount: 400,
       method: 'card',
       userId: 1
     });
@@ -138,8 +146,8 @@ async function runScenarios() {
     await PendingCheckout.create({
       gateway_order_id: scen5Id,
       user_id: 1,
-      items: JSON.stringify([{ productId: 1, quantity: 2, priceAtPurchase: 100 }]),
-      amount: 200
+      items: JSON.stringify([{ productId: 1, quantity: 2, priceAtPurchase: 100, deliveryChargeAtPurchase: 100 }]),
+      amount: 400
     });
 
     console.log('Webhook receives payment.failed...');
@@ -159,10 +167,10 @@ async function runScenarios() {
       gateway_order_id: scen6Id,
       user_id: 1,
       items: JSON.stringify([
-        { productId: 1, quantity: 2, priceAtPurchase: 100 },
-        { productId: 2, quantity: 2, priceAtPurchase: 200 }
+        { productId: 1, quantity: 2, priceAtPurchase: 100, deliveryChargeAtPurchase: 100 },
+        { productId: 2, quantity: 2, priceAtPurchase: 200, deliveryChargeAtPurchase: 100 }
       ]),
-      amount: 600
+      amount: 1000
     });
 
     // Product 1 goes out of stock, Product 2 is still available
@@ -171,7 +179,7 @@ async function runScenarios() {
     await processSuccessfulPayment({
       gatewayOrderId: scen6Id,
       gatewayPaymentId: 'pay_scen6_' + Date.now(),
-      razorpayCapturedAmount: 600,
+      razorpayCapturedAmount: 1000,
       method: 'card',
       userId: 1
     });

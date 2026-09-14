@@ -229,11 +229,11 @@ const MyOrdersPage = () => {
                             <div className="flex-1 min-w-0">
                               <h4 className="font-medium text-gray-900 truncate">{item.product?.name || 'Product'}</h4>
                               <div className="text-sm text-gray-500">
-                                Qty: {item.quantity} × ₹{item.price_at_purchase.toLocaleString('en-IN')}
+                                Qty: {item.quantity} × ₹{(parseFloat(item.price_at_purchase) + parseFloat(item.delivery_charge_at_purchase || 0)).toLocaleString('en-IN')}
                               </div>
                             </div>
                             <div className="font-bold text-gray-900">
-                              ₹{(item.price_at_purchase * item.quantity).toLocaleString('en-IN')}
+                              ₹{((parseFloat(item.price_at_purchase) + parseFloat(item.delivery_charge_at_purchase || 0)) * item.quantity).toLocaleString('en-IN')}
                             </div>
                           </div>
                         ))}
